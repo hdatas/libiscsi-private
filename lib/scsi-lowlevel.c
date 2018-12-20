@@ -1359,6 +1359,7 @@ scsi_inquiry_unmarshall_standard(struct scsi_task *task)
 	inq->qualifier              = (task_get_uint8(task, 0) >> 5) & 0x07;
 	inq->device_type            = task_get_uint8(task, 0) & 0x1f;
 	inq->rmb                    = !!(task_get_uint8(task, 1) & 0x80);
+	inq->lucong                 = !!(task_get_uint8(task, 1) & 0x40);
 	inq->version                = task_get_uint8(task, 2);
 	inq->normaca                = !!(task_get_uint8(task, 3) & 0x20);
 	inq->hisup                  = !!(task_get_uint8(task, 3) & 0x10);
@@ -3899,6 +3900,10 @@ scsi_version_to_str(enum scsi_version version)
 		return "ANSI INCITS 351-2001 (SPC-2)";
 	case SCSI_VERSION_SPC3:
 		return "ANSI INCITS 408-2005 (SPC-3)";
+    case SCSI_VERSION_SPC4:
+        return "ANSI INCITS 513-2015 (SPC-4)";
+    case SCSI_VERSION_SPC5:
+        return "ANSI INCITS 502- (SPC-5)";
 	}
 	return "unknown";
 }
@@ -3971,6 +3976,14 @@ scsi_version_descriptor_to_str(enum scsi_version_descriptor version_descriptor)
 		return "SPC-4 T10/1731-D revision 18";
 	case SCSI_VERSION_DESCRIPTOR_SPC_4_T10_1731_D_R23:
 		return "SPC-4 T10/1731-D revision 23";
+    case SCSI_VERSION_DESCRIPTOR_SPC_4_T10_1731_D_R36:
+        return "SPC-4 T10/BSR INCITS 513 revision 36";
+    case SCSI_VERSION_DESCRIPTOR_SPC_4_T10_1731_D_R37:
+        return "SPC-4 T10/BSR INCITS 513 revision 37";
+    case SCSI_VERSION_DESCRIPTOR_SPC_4_T10_1731_D_R37a:
+        return "SPC-4 T10/BSR INCITS 513 revision 37a";
+    case SCSI_VERSION_DESCRIPTOR_SPC_5:
+        return "SPC-5(no version claimed)";
 	case SCSI_VERSION_DESCRIPTOR_SSC:
 		return "SSC";
 	case SCSI_VERSION_DESCRIPTOR_UAS_T10_2095D_R04:

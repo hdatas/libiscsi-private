@@ -114,11 +114,10 @@ void inquiry_standard(struct scsi_inquiry_standard *inq)
 {
 	int i;
 
-	printf("Peripheral Qualifier:%s\n",
-		scsi_devqualifier_to_str(inq->qualifier));
-	printf("Peripheral Device Type:%s\n",
-		scsi_devtype_to_str(inq->device_type));
+	printf("Peripheral Qualifier:%s\n", scsi_devqualifier_to_str(inq->qualifier));
+	printf("Peripheral Device Type:%s\n", scsi_devtype_to_str(inq->device_type));
 	printf("Removable:%d\n", inq->rmb);
+	printf("LUN_CONG:%d\n", inq->lucong);
 	printf("Version:%d %s\n", inq->version, scsi_version_to_str(inq->version));
 	printf("NormACA:%d\n", inq->normaca);
 	printf("HiSup:%d\n", inq->hisup);

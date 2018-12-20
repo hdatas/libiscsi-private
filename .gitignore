@@ -52,3 +52,7 @@ TAGS
 /libiscsi.pc
 /.cproject
 /.project
+/tests/prog_header_digest
+/tests/prog_read_all_pdus
+/tests/prog_readwrite_iov
+.gitignore
