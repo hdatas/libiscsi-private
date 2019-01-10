@@ -504,6 +504,7 @@ scsi_reportluns_datain_unmarshall(struct scsi_task *task)
 
 	list->num = num_luns;
 	for (i = 0; i < num_luns; i++) {
+		/*TODO get alu:slu format for SAM-5 */
 		list->luns[i] = task_get_uint16(task, i * 8 + 8);
 	}
 

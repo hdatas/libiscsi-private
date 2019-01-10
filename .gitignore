@@ -55,4 +55,7 @@ TAGS
 /tests/prog_header_digest
 /tests/prog_read_all_pdus
 /tests/prog_readwrite_iov
+.idea/
+CMakeLists.txt
+cmake-build-debug/
 .gitignore

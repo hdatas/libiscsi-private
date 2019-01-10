@@ -305,7 +305,7 @@ static struct scsi_task *send_scsi_command(struct scsi_device *sdev, struct scsi
                         free(discard_const(sdev->error_str));
                         sdev->error_str = NULL;
                 }
-                task = iscsi_scsi_command_sync(sdev->iscsi_ctx, sdev->iscsi_lun, task, NULL);
+                task = iscsi_scsi_command_sync(sdev->iscsi_ctx, sdev->iscsi_lun, sdev->iscsi_slu, task, NULL);
                 if (task == NULL) {
                         sdev->error_str = strdup(iscsi_get_error(sdev->iscsi_ctx));
                 }
@@ -515,7 +515,7 @@ iscsi_context_login(const char *initiatorname, const char *url, int *lun)
                 }
         }
 
-        if (iscsi_full_connect_sync(iscsi, iscsi_url->portal, iscsi_url->lun) != 0) {
+        if (iscsi_full_connect_sync(iscsi, iscsi_url->portal, iscsi_url->lun, iscsi_url->slu) != 0) {
                 fprintf(stderr, "Login Failed. %s\n", iscsi_get_error(iscsi));
                 iscsi_destroy_url(iscsi_url);
                 iscsi_destroy_context(iscsi);
@@ -3096,7 +3096,8 @@ test_iscsi_tur_until_good(struct scsi_device *iscsi_sd, int *num_uas)
         for (num_turs = 0; num_turs < TEST_ISCSI_TUR_MAX_RETRIES; num_turs++) {
                 struct scsi_task *tsk;
                 tsk = iscsi_testunitready_sync(iscsi_sd->iscsi_ctx,
-                                               iscsi_sd->iscsi_lun);
+                                               iscsi_sd->iscsi_lun,
+                                               iscsi_sd->iscsi_slu);
                 if (tsk->status == SCSI_STATUS_GOOD) {
                         logging(LOG_VERBOSE, "TUR good after %d retries",
                                 num_turs);

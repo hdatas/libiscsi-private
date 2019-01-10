@@ -76,7 +76,7 @@ test_writeverify10_residuals(void)
 
         logging(LOG_VERBOSE, "Try writing one block but with iSCSI expected transfer length==0");
 
-        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, task, NULL);
+        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, sd->iscsi_slu , task, NULL);
         CU_ASSERT_PTR_NOT_NULL_FATAL(task_ret);
         CU_ASSERT_NOT_EQUAL(task->status, SCSI_STATUS_CANCELLED); /* XXX redundant? */
 
@@ -131,7 +131,7 @@ test_writeverify10_residuals(void)
         memset(buf, 0xa6, sizeof(buf));
         data.size = task->expxferlen;
         data.data = &buf[0];
-        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, task, &data);
+        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, sd->iscsi_slu , task, &data);
         CU_ASSERT_PTR_NOT_NULL_FATAL(task_ret);
 
         logging(LOG_VERBOSE, "Verify that the target returned SUCCESS");
@@ -174,7 +174,7 @@ test_writeverify10_residuals(void)
 
         data.size = task->expxferlen;
         data.data = &buf[0];
-        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, task, &data);
+        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, sd->iscsi_slu , task, &data);
         CU_ASSERT_PTR_NOT_NULL_FATAL(task_ret);
 
         logging(LOG_VERBOSE, "Verify that the target returned SUCCESS");
@@ -224,7 +224,7 @@ test_writeverify10_residuals(void)
 
         data.size = task->expxferlen;
         data.data = &buf[0];
-        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, task, &data);
+        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, sd->iscsi_slu , task, &data);
         CU_ASSERT_PTR_NOT_NULL_FATAL(task_ret);
 
         logging(LOG_VERBOSE, "Verify that the target returned SUCCESS");
@@ -278,7 +278,7 @@ test_writeverify10_residuals(void)
 
         data.size = task->expxferlen;
         data.data = &buf[0];
-        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, task, &data);
+        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, sd->iscsi_slu , task, &data);
         CU_ASSERT_PTR_NOT_NULL_FATAL(task_ret);
 
         logging(LOG_VERBOSE, "Verify that the target returned SUCCESS");
@@ -351,7 +351,7 @@ test_writeverify10_residuals(void)
 
         data.size = task->expxferlen;
         data.data = &buf[0];
-        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, task, &data);
+        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, sd->iscsi_slu , task, &data);
         CU_ASSERT_PTR_NOT_NULL_FATAL(task_ret);
 
         logging(LOG_VERBOSE, "Verify that the target returned SUCCESS");

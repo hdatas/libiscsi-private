@@ -166,14 +166,14 @@ int main(int argc, char *argv[])
 
 	iscsi_set_session_type(iscsi, ISCSI_SESSION_NORMAL);
 
-	if (iscsi_full_connect_sync(iscsi, iscsi_url->portal, iscsi_url->lun)
+	if (iscsi_full_connect_sync(iscsi, iscsi_url->portal, iscsi_url->lun, iscsi_url->slu)
 	    != 0) {
 		fprintf(stderr, "iscsi_connect failed. %s\n",
 			iscsi_get_error(iscsi));
 		exit(10);
 	}
 
-	task = iscsi_readcapacity10_sync(iscsi, iscsi_url->lun, 0, 0);
+	task = iscsi_readcapacity10_sync(iscsi, iscsi_url->lun, iscsi_url->slu, 0, 0);
 	if (task == NULL || task->status != SCSI_STATUS_GOOD) {
 		fprintf(stderr, "failed to send readcapacity command\n");
 		exit(10);
@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
         iov[3].iov_base = data + 256;
         iov[3].iov_len = rc10->block_size - 256;
         
-        task = iscsi_write16_iov_sync(iscsi, iscsi_url->lun, 0, NULL,
+        task = iscsi_write16_iov_sync(iscsi, iscsi_url->lun, iscsi_url->slu, 0, NULL,
                                       rc10->block_size, rc10->block_size,
                                       0, 0, 0, 0, 0,
                                       iov, 4);
@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
         iov[3].iov_base = data + 64;
         iov[3].iov_len = rc10->block_size - 64;
 
-        task = iscsi_read16_iov_sync(iscsi, iscsi_url->lun, 0,
+        task = iscsi_read16_iov_sync(iscsi, iscsi_url->lun, iscsi_url->slu, 0,
                                      rc10->block_size, rc10->block_size,
                                      0, 0, 0, 0, 0,
                                      iov, 4);

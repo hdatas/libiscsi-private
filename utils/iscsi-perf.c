@@ -147,8 +147,9 @@ void cb(struct iscsi_context *iscsi _U_, int status, void *command_data, void *p
 			client->err_cnt++;
 			goto out;
 		}
+		/*TODO add SLU */
 		task2 = iscsi_read16_task(client->iscsi,
-								client->lun, read16_cdb->lba,
+								client->lun, 0, read16_cdb->lba,
 								read16_cdb->transfer_length * client->blocksize,
 								client->blocksize, 0, 0, 0, 0, 0,
 								cb, client);
@@ -207,9 +208,9 @@ void fill_read_queue(struct client *client)
 		if (client->random_blocks) {
 			num_blocks = rand() % num_blocks + 1;
 		}
-
+		/*TODO add slu */
 		task = iscsi_read16_task(client->iscsi,
-								client->lun, client->pos,
+								client->lun, 0, client->pos,
 								(uint32_t)(num_blocks * client->blocksize),
 								client->blocksize, 0, 0, 0, 0, 0,
 								cb, client);
@@ -331,7 +332,7 @@ int main(int argc, char *argv[])
 	iscsi_set_session_type(client.iscsi, ISCSI_SESSION_NORMAL);
 	iscsi_set_header_digest(client.iscsi, ISCSI_HEADER_DIGEST_NONE_CRC32C);
 
-	if (iscsi_full_connect_sync(client.iscsi, iscsi_url->portal, iscsi_url->lun) != 0) {
+	if (iscsi_full_connect_sync(client.iscsi, iscsi_url->portal, iscsi_url->lun, 0) != 0) {
 		fprintf(stderr, "Login Failed. %s\n", iscsi_get_error(client.iscsi));
 		iscsi_destroy_url(iscsi_url);
 		iscsi_destroy_context(client.iscsi);
@@ -343,8 +344,8 @@ int main(int argc, char *argv[])
 
 	client.lun = iscsi_url->lun;
 	iscsi_destroy_url(iscsi_url);
-
-	task = iscsi_readcapacity16_sync(client.iscsi, client.lun);
+	/*TODO add slu */
+	task = iscsi_readcapacity16_sync(client.iscsi, client.lun, 0);
 	if (task == NULL || task->status != SCSI_STATUS_GOOD) {
 		fprintf(stderr, "failed to send readcapacity command\n");
 		exit(10);

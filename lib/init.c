@@ -547,8 +547,10 @@ iscsi_parse_url(struct iscsi_context *iscsi, const char *url, int full)
 	char *target_passwd = NULL;
 	char *target = NULL;
 	char *lun;
+	char *slu;
 	char *tmp;
-	int l = 0;
+	int  l = 0;
+	uint64_t sl = 0;
 #ifdef HAVE_LINUX_ISER
 	int is_iser = 0;
 #endif
@@ -671,14 +673,26 @@ iscsi_parse_url(struct iscsi_context *iscsi, const char *url, int full)
 		}
 		*lun++ = 0;
 
-		l = strtol(lun, &tmp, 10);
-		if (*lun == 0 || *tmp != 0) {
-			iscsi_set_error(iscsi, "Invalid URL %s\nCould not "
-				"parse <lun>\niSCSI URL must be of the form: "
-				"%s",
-				url, ISCSI_URL_SYNTAX);
-			return NULL;
-		}
+    slu = strchr(lun, ':');
+    if (slu == NULL) {
+      sl = 0;
+    }
+    else {
+      *slu++ = 0;
+      sl = strtol(slu, &tmp, 10);
+      if (*slu == 0 || *tmp != 0) {
+        sl = 0;
+      }
+    }
+
+    l = strtol(lun, &tmp, 10);
+    if (*lun == 0 || *tmp != 0) {
+      iscsi_set_error(iscsi, "Invalid URL %s\nCould not "
+                             "parse <lun>\niSCSI URL must be of the form: "
+                             "%s",
+                      url, ISCSI_URL_SYNTAX);
+      return NULL;
+    }
 	} else {
 		tmp=strchr(portal,'/');
 		if (tmp) {
@@ -727,6 +741,7 @@ iscsi_parse_url(struct iscsi_context *iscsi, const char *url, int full)
 	if (full) {
 		strncpy(iscsi_url->target, target, MAX_STRING_SIZE);
 		iscsi_url->lun = l;
+		iscsi_url->slu = sl;
 	}
 
 	iscsi_decode_url_string(&iscsi_url->target[0]);

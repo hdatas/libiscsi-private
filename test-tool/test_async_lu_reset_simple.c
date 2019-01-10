@@ -121,7 +121,7 @@ test_async_lu_reset_simple(void)
 					    buf);
 	CU_ASSERT_EQUAL(ret, 0);
 
-	ret = iscsi_scsi_command_async(sd->iscsi_ctx, sd->iscsi_lun,
+	ret = iscsi_scsi_command_async(sd->iscsi_ctx, sd->iscsi_lun, sd->iscsi_slu,
 				       state.wtask, test_async_write_cb, NULL,
 				       &state);
 	CU_ASSERT_EQUAL(ret, 0);
@@ -150,7 +150,7 @@ test_async_lu_reset_simple(void)
 	 * queue reset. TMF req should be sent to the target.
 	 */
 	ret = iscsi_task_mgmt_async(sd->iscsi_ctx,
-				    state.wtask->lun, ISCSI_TM_LUN_RESET,
+				    state.wtask->lun, state.wtask->slu, ISCSI_TM_LUN_RESET,
 				    0xffffffff, 0,
 				    test_async_reset_cb, &state);
 	CU_ASSERT_EQUAL(ret, 0);

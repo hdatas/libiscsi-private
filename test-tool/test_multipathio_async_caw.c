@@ -145,6 +145,7 @@ test_mpio_async_caw(void)
 
 			ret = iscsi_scsi_command_async(mp_sds[sd_i]->iscsi_ctx,
 						       mp_sds[sd_i]->iscsi_lun,
+						       mp_sds[sd_i]->iscsi_slu,
 						       atask,
 						       test_mpio_async_caw_cb,
 						       NULL, &state);

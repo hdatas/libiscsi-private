@@ -58,6 +58,7 @@ struct client_state {
        char *target_name;
        char *target_address;
        int lun;
+       uint64_t slu;
        int block_size;
 };
 
@@ -90,7 +91,7 @@ void nop_out_cb(struct iscsi_context *iscsi, int status, void *command_data, voi
 		       data->size, (int)data->size, data->data);
 	}
 	printf("Send SYNCHRONIZECACHE10\n");
-	task = iscsi_synchronizecache10_task(iscsi, 2, 0, 0, 0, 0, synccache10_cb, private_data);
+	task = iscsi_synchronizecache10_task(iscsi, 2, 0, 0, 0, 0, 0, synccache10_cb, private_data);
 	if (task == NULL) {
 		printf("failed to send sync cache10\n");
 		exit(10);
@@ -149,7 +150,7 @@ void write10_cb(struct iscsi_context *iscsi _U_, int status, void *command_data,
 	for (i = 0;i < 512; i++) {
 		wb[i] = (511 - i) & 0xff;
 	}
-	task = iscsi_write10_task(iscsi, clnt->lun, 0, NULL, 512, 512,
+	task = iscsi_write10_task(iscsi, clnt->lun, clnt->slu, 0, NULL, 512, 512,
 			0, 0, 0, 0, 0,
 			write10_1_cb, private_data);
 	if (task == NULL) {
@@ -204,7 +205,7 @@ void read10_1_cb(struct iscsi_context *iscsi, int status, void *command_data, vo
 	for (i = 0;i < 512; i++) {
 		wb[i] = i & 0xff;
 	}
-	task = iscsi_write10_task(iscsi, clnt->lun, 0, wb, 512, 512,
+	task = iscsi_write10_task(iscsi, clnt->lun, clnt->slu, 0, wb, 512, 512,
 			0, 0, 0, 0, 0,
 			write10_cb, private_data);
 	if (task == NULL) {
@@ -240,7 +241,7 @@ void read10_cb(struct iscsi_context *iscsi, int status, void *command_data, void
 
 	memset(&small_buffer[0], 0, 512);
 
-	if ((task = iscsi_read10_task(iscsi, clnt->lun, 0, clnt->block_size, clnt->block_size, 0, 0, 0, 0, 0, read10_1_cb, private_data)) == NULL) {
+	if ((task = iscsi_read10_task(iscsi, clnt->lun, clnt->slu, 0, clnt->block_size, clnt->block_size, 0, 0, 0, 0, 0, read10_1_cb, private_data)) == NULL) {
 		printf("failed to send read10 command\n");
 		exit(10);
 	}
@@ -279,7 +280,7 @@ void read6_cb(struct iscsi_context *iscsi, int status, void *command_data, void 
 
 	scsi_free_scsi_task(task);
 
-	if ((task = iscsi_read10_task(iscsi, clnt->lun, 0, clnt->block_size, clnt->block_size, 0, 0, 0, 0, 0, read10_cb, private_data)) == NULL) {
+	if ((task = iscsi_read10_task(iscsi, clnt->lun, clnt->slu, 0, clnt->block_size, clnt->block_size, 0, 0, 0, 0, 0, read10_cb, private_data)) == NULL) {
 		printf("failed to send read10 command\n");
 		exit(10);
 	}
@@ -322,7 +323,7 @@ void readcapacity10_cb(struct iscsi_context *iscsi, int status, void *command_da
 	clnt->block_size = rc10->block_size;
 	printf("READCAPACITY10 successful. Size:%d blocks  blocksize:%d. Read first block\n", rc10->lba, rc10->block_size);
 
-	if (iscsi_read6_task(iscsi, clnt->lun, 0, clnt->block_size, clnt->block_size, read6_cb, private_data) == NULL) {
+	if (iscsi_read6_task(iscsi, clnt->lun, clnt->slu, 0, clnt->block_size, clnt->block_size, read6_cb, private_data) == NULL) {
 		printf("failed to send read6 command\n");
 		scsi_free_scsi_task(task);
 		exit(10);
@@ -344,7 +345,7 @@ void modesense6_cb(struct iscsi_context *iscsi, int status, void *command_data, 
 		full_size = scsi_datain_getfullsize(task);
 		if (full_size > task->datain.size) {
 			printf("did not get enough data for mode sense, sening modesense again asking for bigger buffer\n");
-			if (iscsi_modesense6_task(iscsi, clnt->lun, 0, SCSI_MODESENSE_PC_CURRENT, SCSI_MODEPAGE_RETURN_ALL_PAGES, 0, full_size, modesense6_cb, private_data) == NULL) {
+			if (iscsi_modesense6_task(iscsi, clnt->lun, clnt->slu, 0, SCSI_MODESENSE_PC_CURRENT, SCSI_MODEPAGE_RETURN_ALL_PAGES, 0, full_size, modesense6_cb, private_data) == NULL) {
 				printf("failed to send modesense6 command\n");
 				scsi_free_scsi_task(task);
 				exit(10);
@@ -363,7 +364,7 @@ void modesense6_cb(struct iscsi_context *iscsi, int status, void *command_data, 
 	}
 
 	printf("Send READCAPACITY10\n");
-	if (iscsi_readcapacity10_task(iscsi, clnt->lun, 0, 0, readcapacity10_cb, private_data) == NULL) {
+	if (iscsi_readcapacity10_task(iscsi, clnt->lun, clnt->slu, 0, 0, readcapacity10_cb, private_data) == NULL) {
 		printf("failed to send readcapacity command\n");
 		scsi_free_scsi_task(task);
 		exit(10);
@@ -393,7 +394,7 @@ void inquiry_cb(struct iscsi_context *iscsi, int status, void *command_data, voi
 
 	printf("Device Type is %d. VendorId:%s ProductId:%s\n", inq->device_type, inq->vendor_identification, inq->product_identification);
 	printf("Send MODESENSE6\n");
-	if (iscsi_modesense6_task(iscsi, clnt->lun, 0, SCSI_MODESENSE_PC_CURRENT, SCSI_MODEPAGE_RETURN_ALL_PAGES, 0, 4, modesense6_cb, private_data) == NULL) {
+	if (iscsi_modesense6_task(iscsi, clnt->lun, clnt->slu, 0, SCSI_MODESENSE_PC_CURRENT, SCSI_MODEPAGE_RETURN_ALL_PAGES, 0, 4, modesense6_cb, private_data) == NULL) {
 		printf("failed to send modesense6 command\n");
 		scsi_free_scsi_task(task);
 		exit(10);
@@ -411,7 +412,7 @@ void testunitready_cb(struct iscsi_context *iscsi, int status, void *command_dat
 		if (task->sense.key == SCSI_SENSE_UNIT_ATTENTION && task->sense.ascq == SCSI_SENSE_ASCQ_BUS_RESET) {
 			printf("target device just came online, try again\n");
 
-			if (iscsi_testunitready_task(iscsi, clnt->lun, testunitready_cb, private_data) == NULL) {
+			if (iscsi_testunitready_task(iscsi, clnt->lun, clnt->slu, testunitready_cb, private_data) == NULL) {
 				printf("failed to send testunitready command\n");
 				scsi_free_scsi_task(task);
 				exit(10);
@@ -422,7 +423,7 @@ void testunitready_cb(struct iscsi_context *iscsi, int status, void *command_dat
 	}
 
 	printf("TESTUNITREADY successful, do an inquiry on lun:%d\n", clnt->lun);
-	if (iscsi_inquiry_task(iscsi, clnt->lun, 0, 0, 64, inquiry_cb, private_data) == NULL) {
+	if (iscsi_inquiry_task(iscsi, clnt->lun, clnt->slu, 0, 0, 64, inquiry_cb, private_data) == NULL) {
 		printf("failed to send inquiry command : %s\n", iscsi_get_error(iscsi));
 		scsi_free_scsi_task(task);
 		exit(10);
@@ -470,10 +471,12 @@ void reportluns_cb(struct iscsi_context *iscsi, int status, void *command_data, 
 		printf("LUN:%d found\n", list->luns[i]);
 		clnt->lun = list->luns[i];
 	}
+	/*TODO add slu */
+	clnt->slu = 0;
 
 	printf("Will use LUN:%d\n", clnt->lun);
 	printf("Send testunitready to lun %d\n", clnt->lun);
-	if (iscsi_testunitready_task(iscsi, clnt->lun, testunitready_cb, private_data) == NULL) {
+	if (iscsi_testunitready_task(iscsi, clnt->lun, clnt->slu, testunitready_cb, private_data) == NULL) {
 		printf("failed to send testunitready command : %s\n", iscsi_get_error(iscsi));
 		scsi_free_scsi_task(task);
 		exit(10);

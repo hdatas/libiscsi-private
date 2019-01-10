@@ -54,7 +54,8 @@ test_multipathio_reset(void)
                         "Test multipath LUN Reset using path %d", reset_path);
 
                 ret = iscsi_task_mgmt_lun_reset_sync(reset_sd->iscsi_ctx,
-                                                     reset_sd->iscsi_lun);
+                                                     reset_sd->iscsi_lun,
+                                                     reset_sd->iscsi_slu);
                 if (ret != 0) {
                         logging(LOG_NORMAL, "LUN reset failed. %s",
                                 iscsi_get_error(reset_sd->iscsi_ctx));

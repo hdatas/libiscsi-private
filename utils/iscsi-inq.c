@@ -147,14 +147,14 @@ void inquiry_standard(struct scsi_inquiry_standard *inq)
 	}
 }
 
-void do_inquiry(struct iscsi_context *iscsi, int lun, int evpd, int pc)
+void do_inquiry(struct iscsi_context *iscsi, int lun, uint64_t slu, int evpd, int pc)
 {
 	struct scsi_task *task;
 	int full_size;
 	void *inq;
 
 	/* See how big this inquiry data is */
-	task = iscsi_inquiry_sync(iscsi, lun, evpd, pc, 64);
+	task = iscsi_inquiry_sync(iscsi, lun, slu, evpd, pc, 64);
 	if (task == NULL || task->status != SCSI_STATUS_GOOD) {
 		fprintf(stderr, "Inquiry command failed : %s\n", iscsi_get_error(iscsi));
 		exit(10);
@@ -165,7 +165,7 @@ void do_inquiry(struct iscsi_context *iscsi, int lun, int evpd, int pc)
 		scsi_free_scsi_task(task);
 
 		/* we need more data for the full list */
-		if ((task = iscsi_inquiry_sync(iscsi, lun, evpd, pc, full_size)) == NULL) {
+		if ((task = iscsi_inquiry_sync(iscsi, lun, slu, evpd, pc, full_size)) == NULL) {
 			fprintf(stderr, "Inquiry command failed : %s\n", iscsi_get_error(iscsi));
 			exit(10);
 		}
@@ -326,14 +326,14 @@ int main(int argc, char *argv[])
 	iscsi_set_session_type(iscsi, ISCSI_SESSION_NORMAL);
 	iscsi_set_header_digest(iscsi, ISCSI_HEADER_DIGEST_NONE_CRC32C);
 
-	if (iscsi_full_connect_sync(iscsi, iscsi_url->portal, iscsi_url->lun) != 0) {
+	if (iscsi_full_connect_sync(iscsi, iscsi_url->portal, iscsi_url->lun, 0) != 0) {
 		fprintf(stderr, "Login Failed. %s\n", iscsi_get_error(iscsi));
 		iscsi_destroy_url(iscsi_url);
 		iscsi_destroy_context(iscsi);
 		exit(10);
 	}
 
-	do_inquiry(iscsi, iscsi_url->lun, evpd, pagecode);
+	do_inquiry(iscsi, iscsi_url->lun, iscsi_url->slu, evpd, pagecode);
 	iscsi_destroy_url(iscsi_url);
 
 	iscsi_logout_sync(iscsi);

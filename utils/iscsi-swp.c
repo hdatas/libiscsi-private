@@ -162,14 +162,14 @@ int main(int argc, char *argv[])
 	iscsi_set_session_type(iscsi, ISCSI_SESSION_NORMAL);
 	iscsi_set_header_digest(iscsi, ISCSI_HEADER_DIGEST_NONE_CRC32C);
 
-	if (iscsi_full_connect_sync(iscsi, iscsi_url->portal, iscsi_url->lun) != 0) {
+	if (iscsi_full_connect_sync(iscsi, iscsi_url->portal, iscsi_url->lun, iscsi_url->slu) != 0) {
 		fprintf(stderr, "Login Failed. %s\n", iscsi_get_error(iscsi));
 		ret = 10;
 		goto finished;
 	}
 
 
-	sense_task = iscsi_modesense10_sync(iscsi, iscsi_url->lun,
+	sense_task = iscsi_modesense10_sync(iscsi, iscsi_url->lun, iscsi_url->slu,
 		0, 1, SCSI_MODESENSE_PC_CURRENT,
 		SCSI_MODEPAGE_CONTROL,
 		0, 255);
@@ -215,7 +215,7 @@ int main(int argc, char *argv[])
 	}
 
 	printf("Turning SWP %s\n", (swp == 1) ? "ON" : "OFF"); 
-	select_task = iscsi_modeselect10_sync(iscsi, iscsi_url->lun,
+	select_task = iscsi_modeselect10_sync(iscsi, iscsi_url->lun, iscsi_url->slu,
 		    1, 0, mp);
 	if (select_task == NULL) {
 		printf("Failed to send MODE_SELECT10 command: %s\n",

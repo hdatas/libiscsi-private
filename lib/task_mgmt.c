@@ -38,7 +38,7 @@
 
 int
 iscsi_task_mgmt_async(struct iscsi_context *iscsi,
-		      int lun, enum iscsi_task_mgmt_funcs function, 
+		      int lun, uint64_t slu, enum iscsi_task_mgmt_funcs function,
 		      uint32_t ritt, uint32_t rcmdsn,
 		      iscsi_command_cb cb, void *private_data)
 {
@@ -67,7 +67,7 @@ iscsi_task_mgmt_async(struct iscsi_context *iscsi,
 	iscsi_pdu_set_pduflags(pdu, 0x80 | function);
 
 	/* lun */
-	iscsi_pdu_set_lun(pdu, lun);
+	iscsi_pdu_set_lun(pdu, lun, slu);
 
 	/* ritt */
 	iscsi_pdu_set_ritt(pdu, ritt);
@@ -108,33 +108,33 @@ iscsi_task_mgmt_abort_task_async(struct iscsi_context *iscsi,
 		      iscsi_command_cb cb, void *private_data)
 {
 	return iscsi_task_mgmt_async(iscsi,
-		      task->lun, ISCSI_TM_ABORT_TASK,
+		      task->lun, task->slu, ISCSI_TM_ABORT_TASK,
 		      task->itt, task->cmdsn,
 		      cb, private_data);
 }
 
 int
 iscsi_task_mgmt_abort_task_set_async(struct iscsi_context *iscsi,
-		      uint32_t lun,
+		      uint32_t lun, uint64_t slu,
 		      iscsi_command_cb cb, void *private_data)
 {
 	iscsi_scsi_cancel_all_tasks(iscsi);
 
 	return iscsi_task_mgmt_async(iscsi,
-		      lun, ISCSI_TM_ABORT_TASK_SET,
+		      lun, slu, ISCSI_TM_ABORT_TASK_SET,
 		      0xffffffff, 0,
 		      cb, private_data);
 }
 
 int
 iscsi_task_mgmt_lun_reset_async(struct iscsi_context *iscsi,
-		      uint32_t lun,
+		      uint32_t lun, uint64_t slu,
 		      iscsi_command_cb cb, void *private_data)
 {
 	iscsi_scsi_cancel_all_tasks(iscsi);
 
 	return iscsi_task_mgmt_async(iscsi,
-		      lun, ISCSI_TM_LUN_RESET,
+		      lun, slu, ISCSI_TM_LUN_RESET,
 		      0xffffffff, 0,
 		      cb, private_data);
 }
@@ -146,7 +146,7 @@ iscsi_task_mgmt_target_warm_reset_async(struct iscsi_context *iscsi,
 	iscsi_scsi_cancel_all_tasks(iscsi);
 
 	return iscsi_task_mgmt_async(iscsi,
-		      0, ISCSI_TM_TARGET_WARM_RESET,
+		      0, 0, ISCSI_TM_TARGET_WARM_RESET,
 		      0xffffffff, 0,
 		      cb, private_data);
 }
@@ -159,7 +159,7 @@ iscsi_task_mgmt_target_cold_reset_async(struct iscsi_context *iscsi,
 	iscsi_scsi_cancel_all_tasks(iscsi);
 
 	return iscsi_task_mgmt_async(iscsi,
-		      0, ISCSI_TM_TARGET_COLD_RESET,
+		      0, 0,  ISCSI_TM_TARGET_COLD_RESET,
 		      0xffffffff, 0,
 		      cb, private_data);
 }

@@ -144,6 +144,7 @@ struct iscsi_context {
 	enum iscsi_immediate_data use_immediate_data;
 
 	int lun;
+	uint64_t slu;
 	int no_auto_reconnect;
 	int reconnect_deferred;
 	int reconnect_max_retries;
@@ -241,6 +242,7 @@ struct iscsi_pdu {
 	uint32_t flags;
 
 	uint32_t lun;
+	uint64_t slu;
 	uint32_t itt;
 	uint32_t cmdsn;
 	uint32_t datasn;
@@ -277,7 +279,7 @@ void iscsi_pdu_set_immediate(struct iscsi_pdu *pdu);
 void iscsi_pdu_set_ttt(struct iscsi_pdu *pdu, uint32_t ttt);
 void iscsi_pdu_set_cmdsn(struct iscsi_pdu *pdu, uint32_t cmdsn);
 void iscsi_pdu_set_rcmdsn(struct iscsi_pdu *pdu, uint32_t rcmdsn);
-void iscsi_pdu_set_lun(struct iscsi_pdu *pdu, uint32_t lun);
+void iscsi_pdu_set_lun(struct iscsi_pdu *pdu, uint32_t lun, uint64_t slu);
 void iscsi_pdu_set_expstatsn(struct iscsi_pdu *pdu, uint32_t expstatsnsn);
 void iscsi_pdu_set_expxferlen(struct iscsi_pdu *pdu, uint32_t expxferlen);
 void iscsi_pdu_set_itt(struct iscsi_pdu *pdu, uint32_t itt);
@@ -323,7 +325,7 @@ int iscsi_process_r2t(struct iscsi_context *iscsi, struct iscsi_pdu *pdu,
 		      struct iscsi_in_pdu *in);
 int iscsi_process_reject(struct iscsi_context *iscsi,
 				struct iscsi_in_pdu *in);
-int iscsi_send_target_nop_out(struct iscsi_context *iscsi, uint32_t ttt, uint32_t lun);
+int iscsi_send_target_nop_out(struct iscsi_context *iscsi, uint32_t ttt, uint32_t lun, uint64_t slu);
 
 #if defined(_WIN32)
 void iscsi_set_error(struct iscsi_context *iscsi, const char *error_string,

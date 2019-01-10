@@ -122,7 +122,7 @@ test_async_abort_simple(void)
 					    buf);
 	CU_ASSERT_EQUAL(ret, 0);
 
-	ret = iscsi_scsi_command_async(sd->iscsi_ctx, sd->iscsi_lun,
+	ret = iscsi_scsi_command_async(sd->iscsi_ctx, sd->iscsi_lun, sd->iscsi_slu,
 				       state.wtask, test_async_write_cb, NULL,
 				       &state);
 	CU_ASSERT_EQUAL(ret, 0);
@@ -152,7 +152,7 @@ test_async_abort_simple(void)
 	 * be sent to the target.
 	 */
 	ret = iscsi_task_mgmt_async(sd->iscsi_ctx,
-				    state.wtask->lun, ISCSI_TM_ABORT_TASK,
+				    state.wtask->lun, state.wtask->slu, ISCSI_TM_ABORT_TASK,
 				    state.wtask->itt, state.wtask->cmdsn,
 				    test_async_abort_cb, &state);
 	CU_ASSERT_EQUAL(ret, 0);

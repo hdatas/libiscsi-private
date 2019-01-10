@@ -96,7 +96,7 @@ test_async_read(void)
 						   &buf[lba * blocksize]);
 		CU_ASSERT_EQUAL(ret, 0);
 
-		ret = iscsi_scsi_command_async(sd->iscsi_ctx, sd->iscsi_lun,
+		ret = iscsi_scsi_command_async(sd->iscsi_ctx, sd->iscsi_lun, sd->iscsi_slu,
 					       atask, test_async_read_cb, NULL,
 					       &state);
 		CU_ASSERT_EQUAL(ret, 0);

@@ -94,7 +94,8 @@ void show_lun(struct iscsi_context *iscsi, int lun)
 
 	/* check we can talk to the lun */
 tur_try_again:
-	if ((task = iscsi_testunitready_sync(iscsi, lun)) == NULL) {
+	/*TODO Add SLU lun later */
+	if ((task = iscsi_testunitready_sync(iscsi, lun, 0)) == NULL) {
 		fprintf(stderr, "testunitready failed\n");
 		exit(10);
 	}
@@ -120,7 +121,7 @@ tur_try_again:
 
 
 	/* check what type of lun we have */
-	task = iscsi_inquiry_sync(iscsi, lun, 0, 0, 64);
+	task = iscsi_inquiry_sync(iscsi, lun, 0, 0, 0, 64);
 	if (task == NULL || task->status != SCSI_STATUS_GOOD) {
 		fprintf(stderr, "failed to send inquiry command : %s\n", iscsi_get_error(iscsi));
 		exit(10);
@@ -138,7 +139,8 @@ tur_try_again:
 	if (type == SCSI_INQUIRY_PERIPHERAL_DEVICE_TYPE_DIRECT_ACCESS) {
 		struct scsi_readcapacity10 *rc10;
 
-		task = iscsi_readcapacity10_sync(iscsi, lun, 0, 0);
+		/*TODO add SLU */
+		task = iscsi_readcapacity10_sync(iscsi, lun, 0, 0, 0);
 		if (task == NULL || task->status != SCSI_STATUS_GOOD) {
 			fprintf(stderr, "failed to send readcapacity command\n");
 			exit(10);
@@ -198,7 +200,7 @@ void list_luns(struct client_state *clnt, const char *target, const char *portal
 	iscsi_set_session_type(iscsi, ISCSI_SESSION_NORMAL);
 	iscsi_set_header_digest(iscsi, ISCSI_HEADER_DIGEST_NONE_CRC32C);
 
-	if (iscsi_full_connect_sync(iscsi, portal, -1) != 0) {
+	if (iscsi_full_connect_sync(iscsi, portal, -1, 0) != 0) {
 		printf("list_luns: iscsi_connect failed. %s\n",
                        iscsi_get_error(iscsi));
 		exit(10);

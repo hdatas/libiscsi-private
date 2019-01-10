@@ -112,7 +112,7 @@ iscsi_send_data_out(struct iscsi_context *iscsi, struct iscsi_pdu *cmd_pdu,
 		iscsi_pdu_set_pduflags(pdu, flags);
 
 		/* lun */
-		iscsi_pdu_set_lun(pdu, cmd_pdu->lun);
+		iscsi_pdu_set_lun(pdu, cmd_pdu->lun, cmd_pdu->slu);
 
 		/* ttt */
 		iscsi_pdu_set_ttt(pdu, ttt);
@@ -164,7 +164,7 @@ iscsi_send_unsolicited_data_out(struct iscsi_context *iscsi, struct iscsi_pdu *p
  * and will be converted into a one element data-out iovector.
  */
 int
-iscsi_scsi_command_async(struct iscsi_context *iscsi, int lun,
+iscsi_scsi_command_async(struct iscsi_context *iscsi, int lun, uint64_t slu,
 			 struct scsi_task *task, iscsi_command_cb cb,
 			 struct iscsi_data *d, void *private_data)
 {
@@ -265,8 +265,9 @@ iscsi_scsi_command_async(struct iscsi_context *iscsi, int lun,
 	iscsi_pdu_set_pduflags(pdu, flags);
 
 	/* lun */
-	iscsi_pdu_set_lun(pdu, lun);
+	iscsi_pdu_set_lun(pdu, lun, slu);
 	pdu->lun = lun;
+	pdu->slu = slu;
 
 	/* expxferlen */
 	iscsi_pdu_set_expxferlen(pdu, task->expxferlen);
@@ -605,7 +606,7 @@ iscsi_process_r2t(struct iscsi_context *iscsi, struct iscsi_pdu *pdu,
  */
 
 struct scsi_task *
-iscsi_testunitready_task(struct iscsi_context *iscsi, int lun,
+iscsi_testunitready_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
 			  iscsi_command_cb cb, void *private_data)
 {
 	struct scsi_task *task;
@@ -616,7 +617,8 @@ iscsi_testunitready_task(struct iscsi_context *iscsi, int lun,
 				"testunitready cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	/* TUR only issues to PE, so set SLU to be 0 */
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -645,7 +647,7 @@ iscsi_reportluns_task(struct iscsi_context *iscsi, int report_type,
 		return NULL;
 	}
 	/* report luns are always sent to lun 0 */
-	if (iscsi_scsi_command_async(iscsi, 0, task, cb,
+	if (iscsi_scsi_command_async(iscsi, 0, 0, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -655,7 +657,7 @@ iscsi_reportluns_task(struct iscsi_context *iscsi, int report_type,
 }
 
 struct scsi_task *
-iscsi_inquiry_task(struct iscsi_context *iscsi, int lun, int evpd,
+iscsi_inquiry_task(struct iscsi_context *iscsi, int lun, uint64_t slu, int evpd,
 		    int page_code, int maxsize,
 		    iscsi_command_cb cb, void *private_data)
 {
@@ -667,7 +669,7 @@ iscsi_inquiry_task(struct iscsi_context *iscsi, int lun, int evpd,
 				"inquiry cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -677,7 +679,7 @@ iscsi_inquiry_task(struct iscsi_context *iscsi, int lun, int evpd,
 }
 
 struct scsi_task *
-iscsi_readcapacity10_task(struct iscsi_context *iscsi, int lun, int lba,
+iscsi_readcapacity10_task(struct iscsi_context *iscsi, int lun, uint64_t slu, int lba,
 			   int pmi, iscsi_command_cb cb, void *private_data)
 {
 	struct scsi_task *task;
@@ -688,7 +690,7 @@ iscsi_readcapacity10_task(struct iscsi_context *iscsi, int lun, int lba,
 				"readcapacity10 cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -698,7 +700,7 @@ iscsi_readcapacity10_task(struct iscsi_context *iscsi, int lun, int lba,
 }
 
 struct scsi_task *
-iscsi_readcapacity16_task(struct iscsi_context *iscsi, int lun,
+iscsi_readcapacity16_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
 			   iscsi_command_cb cb, void *private_data)
 {
 	struct scsi_task *task;
@@ -709,7 +711,7 @@ iscsi_readcapacity16_task(struct iscsi_context *iscsi, int lun,
 				"readcapacity16 cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -719,7 +721,7 @@ iscsi_readcapacity16_task(struct iscsi_context *iscsi, int lun,
 }
 
 struct scsi_task *
-iscsi_readdefectdata10_task(struct iscsi_context *iscsi, int lun,
+iscsi_readdefectdata10_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
                             int req_plist, int req_glist,
                             int defect_list_format, uint16_t alloc_len,
                             iscsi_command_cb cb, void *private_data)
@@ -733,7 +735,7 @@ iscsi_readdefectdata10_task(struct iscsi_context *iscsi, int lun,
 				"readdefectdata10 cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -743,7 +745,7 @@ iscsi_readdefectdata10_task(struct iscsi_context *iscsi, int lun,
 }
 
 struct scsi_task *
-iscsi_readdefectdata12_task(struct iscsi_context *iscsi, int lun,
+iscsi_readdefectdata12_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
                             int req_plist, int req_glist,
                             int defect_list_format,
                             uint32_t address_descriptor_index,
@@ -760,7 +762,7 @@ iscsi_readdefectdata12_task(struct iscsi_context *iscsi, int lun,
 				"readdefectdata12 cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -770,7 +772,7 @@ iscsi_readdefectdata12_task(struct iscsi_context *iscsi, int lun,
 }
 
 struct scsi_task *
-iscsi_get_lba_status_task(struct iscsi_context *iscsi, int lun,
+iscsi_get_lba_status_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
 			  uint64_t starting_lba, uint32_t alloc_len,
 			  iscsi_command_cb cb, void *private_data)
 {
@@ -782,7 +784,7 @@ iscsi_get_lba_status_task(struct iscsi_context *iscsi, int lun,
 				"get-lba-status cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -792,7 +794,7 @@ iscsi_get_lba_status_task(struct iscsi_context *iscsi, int lun,
 }
 
 struct scsi_task *
-iscsi_read6_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
+iscsi_read6_iov_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint32_t lba,
 		   uint32_t datalen, int blocksize,
 		   iscsi_command_cb cb, void *private_data, struct scsi_iovec *iov, int niov)
 {
@@ -814,7 +816,7 @@ iscsi_read6_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 	if (iov != NULL)
 		scsi_task_set_iov_in(task, iov, niov);
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -824,7 +826,7 @@ iscsi_read6_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 }
 
 struct scsi_task *
-iscsi_read6_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
+iscsi_read6_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint32_t lba,
 		   uint32_t datalen, int blocksize,
 		   iscsi_command_cb cb, void *private_data)
 {
@@ -842,7 +844,7 @@ iscsi_read6_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 				"read6 cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -852,7 +854,7 @@ iscsi_read6_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 }
 
 struct scsi_task *
-iscsi_read10_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
+iscsi_read10_iov_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint32_t lba,
 		  uint32_t datalen, int blocksize,
 		  int rdprotect, int dpo, int fua, int fua_nv, int group_number,
 		  iscsi_command_cb cb, void *private_data, struct scsi_iovec *iov, int niov)
@@ -876,7 +878,7 @@ iscsi_read10_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 	if (iov != NULL)
 		scsi_task_set_iov_in(task, iov, niov);
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -885,7 +887,7 @@ iscsi_read10_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 	return task;
 }
 struct scsi_task *
-iscsi_read10_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
+iscsi_read10_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint32_t lba,
 		  uint32_t datalen, int blocksize,
 		  int rdprotect, int dpo, int fua, int fua_nv, int group_number,
 		  iscsi_command_cb cb, void *private_data)
@@ -905,7 +907,7 @@ iscsi_read10_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 				"read10 cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -915,7 +917,7 @@ iscsi_read10_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 }
 
 struct scsi_task *
-iscsi_read12_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
+iscsi_read12_iov_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint32_t lba,
 		   uint32_t datalen, int blocksize,
 		   int rdprotect, int dpo, int fua, int fua_nv, int group_number,
 		   iscsi_command_cb cb, void *private_data, struct scsi_iovec *iov, int niov)
@@ -939,7 +941,7 @@ iscsi_read12_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 	if (iov != NULL)
 		scsi_task_set_iov_in(task, iov, niov);
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -949,7 +951,7 @@ iscsi_read12_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 }
 
 struct scsi_task *
-iscsi_read12_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
+iscsi_read12_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint32_t lba,
 		   uint32_t datalen, int blocksize,
 		   int rdprotect, int dpo, int fua, int fua_nv, int group_number,
 		   iscsi_command_cb cb, void *private_data)
@@ -969,7 +971,7 @@ iscsi_read12_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 				"read12 cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -979,7 +981,7 @@ iscsi_read12_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 }
 
 struct scsi_task *
-iscsi_read16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
+iscsi_read16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint64_t lba,
 		   uint32_t datalen, int blocksize,
 		   int rdprotect, int dpo, int fua, int fua_nv, int group_number,
 		   iscsi_command_cb cb, void *private_data, struct scsi_iovec *iov, int niov)
@@ -1003,7 +1005,7 @@ iscsi_read16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 	if (iov != NULL)
 		scsi_task_set_iov_in(task, iov, niov);
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1013,7 +1015,7 @@ iscsi_read16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 }
 
 struct scsi_task *
-iscsi_read16_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
+iscsi_read16_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint64_t lba,
 		   uint32_t datalen, int blocksize,
 		   int rdprotect, int dpo, int fua, int fua_nv, int group_number,
 		   iscsi_command_cb cb, void *private_data)
@@ -1033,7 +1035,7 @@ iscsi_read16_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 				"read16 cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1043,7 +1045,7 @@ iscsi_read16_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 }
 
 struct scsi_task *
-iscsi_write10_task(struct iscsi_context *iscsi, int lun, uint32_t lba, 
+iscsi_write10_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint32_t lba, 
 		   unsigned char *data, uint32_t datalen, int blocksize,
 		   int wrprotect, int dpo, int fua, int fua_nv, int group_number,
 		   iscsi_command_cb cb, void *private_data)
@@ -1067,7 +1069,7 @@ iscsi_write10_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 	d.data = data;
 	d.size = datalen;
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1077,7 +1079,7 @@ iscsi_write10_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 }
 
 struct scsi_task *
-iscsi_write10_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba, 
+iscsi_write10_iov_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint32_t lba, 
 		       unsigned char *data, uint32_t datalen, int blocksize,
 		       int wrprotect, int dpo, int fua, int fua_nv, int group_number,
 		       iscsi_command_cb cb, void *private_data, struct scsi_iovec *iov, int niov)
@@ -1105,7 +1107,7 @@ iscsi_write10_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 		scsi_task_set_iov_out(task, iov, niov);
 
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1115,7 +1117,7 @@ iscsi_write10_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 }
 
 struct scsi_task *
-iscsi_write12_task(struct iscsi_context *iscsi, int lun, uint32_t lba, 
+iscsi_write12_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint32_t lba, 
 		   unsigned char *data, uint32_t datalen, int blocksize,
 		   int wrprotect, int dpo, int fua, int fua_nv, int group_number,
 		   iscsi_command_cb cb, void *private_data)
@@ -1139,7 +1141,7 @@ iscsi_write12_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 	d.data = data;
 	d.size = datalen;
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1149,7 +1151,7 @@ iscsi_write12_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 }
 
 struct scsi_task *
-iscsi_write12_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba, 
+iscsi_write12_iov_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint32_t lba, 
 		       unsigned char *data, uint32_t datalen, int blocksize,
 		       int wrprotect, int dpo, int fua, int fua_nv, int group_number,
 		       iscsi_command_cb cb, void *private_data, struct scsi_iovec *iov, int niov)
@@ -1176,7 +1178,7 @@ iscsi_write12_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 	if (iov != NULL)
 		scsi_task_set_iov_out(task, iov, niov);
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1186,7 +1188,7 @@ iscsi_write12_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 }
 
 struct scsi_task *
-iscsi_write16_task(struct iscsi_context *iscsi, int lun, uint64_t lba, 
+iscsi_write16_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint64_t lba, 
 		   unsigned char *data, uint32_t datalen, int blocksize,
 		   int wrprotect, int dpo, int fua, int fua_nv, int group_number,
 		   iscsi_command_cb cb, void *private_data)
@@ -1210,7 +1212,7 @@ iscsi_write16_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 	d.data = data;
 	d.size = datalen;
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1220,7 +1222,7 @@ iscsi_write16_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 }
 
 struct scsi_task *
-iscsi_write16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lba, 
+iscsi_write16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint64_t lba, 
 		       unsigned char *data, uint32_t datalen, int blocksize,
 		       int wrprotect, int dpo, int fua, int fua_nv, int group_number,
 		       iscsi_command_cb cb, void *private_data, struct scsi_iovec *iov, int niov)
@@ -1247,7 +1249,7 @@ iscsi_write16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 	if (iov != NULL)
 		scsi_task_set_iov_out(task, iov, niov);
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1257,7 +1259,7 @@ iscsi_write16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 }
 
 struct scsi_task *
-iscsi_writeatomic16_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
+iscsi_writeatomic16_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint64_t lba,
 			 unsigned char *data, uint32_t datalen, int blocksize,
 			 int wrprotect, int dpo, int fua, int group_number,
 			 iscsi_command_cb cb, void *private_data)
@@ -1281,7 +1283,7 @@ iscsi_writeatomic16_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 	d.data = data;
 	d.size = datalen;
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1291,7 +1293,7 @@ iscsi_writeatomic16_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 }
 
 struct scsi_task *
-iscsi_writeatomic16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
+iscsi_writeatomic16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint64_t lba,
 			     unsigned char *data, uint32_t datalen, int blocksize,
 			     int wrprotect, int dpo, int fua, int group_number,
 			     iscsi_command_cb cb, void *private_data,
@@ -1319,7 +1321,7 @@ iscsi_writeatomic16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 	if (iov != NULL)
 		scsi_task_set_iov_out(task, iov, niov);
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1329,7 +1331,7 @@ iscsi_writeatomic16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 }
 
 struct scsi_task *
-iscsi_orwrite_task(struct iscsi_context *iscsi, int lun, uint64_t lba, 
+iscsi_orwrite_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint64_t lba, 
 		   unsigned char *data, uint32_t datalen, int blocksize,
 		   int wrprotect, int dpo, int fua, int fua_nv, int group_number,
 		   iscsi_command_cb cb, void *private_data)
@@ -1353,7 +1355,7 @@ iscsi_orwrite_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 	d.data = data;
 	d.size = datalen;
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1363,7 +1365,7 @@ iscsi_orwrite_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 }
 
 struct scsi_task *
-iscsi_orwrite_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lba, 
+iscsi_orwrite_iov_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint64_t lba, 
 		       unsigned char *data, uint32_t datalen, int blocksize,
 		       int wrprotect, int dpo, int fua, int fua_nv, int group_number,
 		       iscsi_command_cb cb, void *private_data, struct scsi_iovec *iov, int niov)
@@ -1390,7 +1392,7 @@ iscsi_orwrite_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 	if (iov != NULL)
 		scsi_task_set_iov_out(task, iov, niov);
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1400,7 +1402,7 @@ iscsi_orwrite_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 }
 
 struct scsi_task *
-iscsi_compareandwrite_task(struct iscsi_context *iscsi, int lun, uint64_t lba, 
+iscsi_compareandwrite_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint64_t lba, 
 		   unsigned char *data, uint32_t datalen, int blocksize,
 		   int wrprotect, int dpo, int fua, int fua_nv, int group_number,
 		   iscsi_command_cb cb, void *private_data)
@@ -1423,8 +1425,8 @@ iscsi_compareandwrite_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 	}
 	d.data = data;
 	d.size = datalen;
-
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	/* COMPARE_AND_WRITE command for PE only */
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1434,7 +1436,7 @@ iscsi_compareandwrite_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 }
 
 struct scsi_task *
-iscsi_compareandwrite_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lba, 
+iscsi_compareandwrite_iov_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint64_t lba, 
 			       unsigned char *data, uint32_t datalen, int blocksize,
 			       int wrprotect, int dpo, int fua, int fua_nv, int group_number,
 			       iscsi_command_cb cb, void *private_data, struct scsi_iovec *iov, int niov)
@@ -1460,8 +1462,8 @@ iscsi_compareandwrite_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lb
 
 	if (iov != NULL)
 		scsi_task_set_iov_out(task, iov, niov);
-
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+  /* COMPARE_AND_WRITE command for PE only */
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1471,7 +1473,7 @@ iscsi_compareandwrite_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lb
 }
 
 struct scsi_task *
-iscsi_writeverify10_task(struct iscsi_context *iscsi, int lun, uint32_t lba, 
+iscsi_writeverify10_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint32_t lba, 
 		   unsigned char *data, uint32_t datalen, int blocksize,
 		   int wrprotect, int dpo, int bytchk, int group_number,
 		   iscsi_command_cb cb, void *private_data)
@@ -1495,7 +1497,7 @@ iscsi_writeverify10_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 	d.data = data;
 	d.size = datalen;
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1505,7 +1507,7 @@ iscsi_writeverify10_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 }
 
 struct scsi_task *
-iscsi_writeverify10_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba, 
+iscsi_writeverify10_iov_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint32_t lba, 
 			     unsigned char *data, uint32_t datalen, int blocksize,
 			     int wrprotect, int dpo, int bytchk, int group_number,
 			     iscsi_command_cb cb, void *private_data,
@@ -1533,7 +1535,7 @@ iscsi_writeverify10_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 	if (iov != NULL)
 		scsi_task_set_iov_out(task, iov, niov);
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1543,7 +1545,7 @@ iscsi_writeverify10_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 }
 
 struct scsi_task *
-iscsi_writeverify12_task(struct iscsi_context *iscsi, int lun, uint32_t lba, 
+iscsi_writeverify12_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint32_t lba, 
 		   unsigned char *data, uint32_t datalen, int blocksize,
 		   int wrprotect, int dpo, int bytchk, int group_number,
 		   iscsi_command_cb cb, void *private_data)
@@ -1567,7 +1569,7 @@ iscsi_writeverify12_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 	d.data = data;
 	d.size = datalen;
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1577,7 +1579,7 @@ iscsi_writeverify12_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 }
 
 struct scsi_task *
-iscsi_writeverify12_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba, 
+iscsi_writeverify12_iov_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint32_t lba, 
 			     unsigned char *data, uint32_t datalen, int blocksize,
 			     int wrprotect, int dpo, int bytchk, int group_number,
 			     iscsi_command_cb cb, void *private_data,
@@ -1605,7 +1607,7 @@ iscsi_writeverify12_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 	if (iov != NULL)
 		scsi_task_set_iov_out(task, iov, niov);
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1615,7 +1617,7 @@ iscsi_writeverify12_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 }
 
 struct scsi_task *
-iscsi_writeverify16_task(struct iscsi_context *iscsi, int lun, uint64_t lba, 
+iscsi_writeverify16_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint64_t lba, 
 		   unsigned char *data, uint32_t datalen, int blocksize,
 		   int wrprotect, int dpo, int bytchk, int group_number,
 		   iscsi_command_cb cb, void *private_data)
@@ -1639,7 +1641,7 @@ iscsi_writeverify16_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 	d.data = data;
 	d.size = datalen;
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1649,7 +1651,7 @@ iscsi_writeverify16_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 }
 
 struct scsi_task *
-iscsi_writeverify16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lba, 
+iscsi_writeverify16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint64_t lba, 
 			     unsigned char *data, uint32_t datalen, int blocksize,
 			     int wrprotect, int dpo, int bytchk, int group_number,
 			     iscsi_command_cb cb, void *private_data,
@@ -1677,7 +1679,7 @@ iscsi_writeverify16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 	if (iov != NULL)
 		scsi_task_set_iov_out(task, iov, niov);
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1687,7 +1689,7 @@ iscsi_writeverify16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 }
 
 struct scsi_task *
-iscsi_verify10_task(struct iscsi_context *iscsi, int lun, unsigned char *data,
+iscsi_verify10_task(struct iscsi_context *iscsi, int lun, uint64_t slu, unsigned char *data,
 		    uint32_t datalen, uint32_t lba, int vprotect, int dpo, int bytchk, int blocksize,
 		    iscsi_command_cb cb, void *private_data)
 {
@@ -1709,7 +1711,7 @@ iscsi_verify10_task(struct iscsi_context *iscsi, int lun, unsigned char *data,
 	d.data = data;
 	d.size = datalen;
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1719,7 +1721,7 @@ iscsi_verify10_task(struct iscsi_context *iscsi, int lun, unsigned char *data,
 }
 
 struct scsi_task *
-iscsi_verify10_iov_task(struct iscsi_context *iscsi, int lun, unsigned char *data,
+iscsi_verify10_iov_task(struct iscsi_context *iscsi, int lun, uint64_t slu, unsigned char *data,
 			uint32_t datalen, uint32_t lba, int vprotect, int dpo, int bytchk, int blocksize,
 			iscsi_command_cb cb, void *private_data, struct scsi_iovec *iov, int niov)
 {
@@ -1744,7 +1746,7 @@ iscsi_verify10_iov_task(struct iscsi_context *iscsi, int lun, unsigned char *dat
 	if (iov != NULL)
 		scsi_task_set_iov_out(task, iov, niov);
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1754,7 +1756,7 @@ iscsi_verify10_iov_task(struct iscsi_context *iscsi, int lun, unsigned char *dat
 }
 
 struct scsi_task *
-iscsi_verify12_task(struct iscsi_context *iscsi, int lun, unsigned char *data,
+iscsi_verify12_task(struct iscsi_context *iscsi, int lun, uint64_t slu, unsigned char *data,
 		    uint32_t datalen, uint32_t lba, int vprotect, int dpo, int bytchk, int blocksize,
 		    iscsi_command_cb cb, void *private_data)
 {
@@ -1776,7 +1778,7 @@ iscsi_verify12_task(struct iscsi_context *iscsi, int lun, unsigned char *data,
 	d.data = data;
 	d.size = datalen;
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1786,7 +1788,7 @@ iscsi_verify12_task(struct iscsi_context *iscsi, int lun, unsigned char *data,
 }
 
 struct scsi_task *
-iscsi_verify12_iov_task(struct iscsi_context *iscsi, int lun, unsigned char *data,
+iscsi_verify12_iov_task(struct iscsi_context *iscsi, int lun, uint64_t slu, unsigned char *data,
 			uint32_t datalen, uint32_t lba, int vprotect, int dpo, int bytchk, int blocksize,
 			iscsi_command_cb cb, void *private_data, struct scsi_iovec *iov, int niov)
 {
@@ -1811,7 +1813,7 @@ iscsi_verify12_iov_task(struct iscsi_context *iscsi, int lun, unsigned char *dat
 	if (iov != NULL)
 		scsi_task_set_iov_out(task, iov, niov);
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1821,7 +1823,7 @@ iscsi_verify12_iov_task(struct iscsi_context *iscsi, int lun, unsigned char *dat
 }
 
 struct scsi_task *
-iscsi_verify16_task(struct iscsi_context *iscsi, int lun, unsigned char *data,
+iscsi_verify16_task(struct iscsi_context *iscsi, int lun, uint64_t slu, unsigned char *data,
 		    uint32_t datalen, uint64_t lba, int vprotect, int dpo, int bytchk, int blocksize,
 		    iscsi_command_cb cb, void *private_data)
 {
@@ -1843,7 +1845,7 @@ iscsi_verify16_task(struct iscsi_context *iscsi, int lun, unsigned char *data,
 	d.data = data;
 	d.size = datalen;
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1853,7 +1855,7 @@ iscsi_verify16_task(struct iscsi_context *iscsi, int lun, unsigned char *data,
 }
 
 struct scsi_task *
-iscsi_verify16_iov_task(struct iscsi_context *iscsi, int lun, unsigned char *data,
+iscsi_verify16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t slu, unsigned char *data,
 			uint32_t datalen, uint64_t lba, int vprotect, int dpo, int bytchk, int blocksize,
 			iscsi_command_cb cb, void *private_data, struct scsi_iovec *iov, int niov)
 {
@@ -1878,7 +1880,7 @@ iscsi_verify16_iov_task(struct iscsi_context *iscsi, int lun, unsigned char *dat
 	if (iov != NULL)
 		scsi_task_set_iov_out(task, iov, niov);
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1888,7 +1890,7 @@ iscsi_verify16_iov_task(struct iscsi_context *iscsi, int lun, unsigned char *dat
 }
 
 struct scsi_task *
-iscsi_modeselect6_task(struct iscsi_context *iscsi, int lun,
+iscsi_modeselect6_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
 		       int pf, int sp, struct scsi_mode_page *mp,
 		       iscsi_command_cb cb, void *private_data)
 {
@@ -1915,7 +1917,7 @@ iscsi_modeselect6_task(struct iscsi_context *iscsi, int lun,
 	task->cdb[4] = data->size;
 	task->expxferlen = data->size;
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1925,7 +1927,7 @@ iscsi_modeselect6_task(struct iscsi_context *iscsi, int lun,
 }
 
 struct scsi_task *
-iscsi_modeselect10_task(struct iscsi_context *iscsi, int lun,
+iscsi_modeselect10_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
 			int pf, int sp, struct scsi_mode_page *mp,
 			iscsi_command_cb cb, void *private_data)
 {
@@ -1954,7 +1956,7 @@ iscsi_modeselect10_task(struct iscsi_context *iscsi, int lun,
 
 	task->expxferlen = data->size;
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1964,7 +1966,7 @@ iscsi_modeselect10_task(struct iscsi_context *iscsi, int lun,
 }
 
 struct scsi_task *
-iscsi_modesense6_task(struct iscsi_context *iscsi, int lun, int dbd, int pc,
+iscsi_modesense6_task(struct iscsi_context *iscsi, int lun, uint64_t slu, int dbd, int pc,
 		       int page_code, int sub_page_code,
 		       unsigned char alloc_len,
 		       iscsi_command_cb cb, void *private_data)
@@ -1978,7 +1980,7 @@ iscsi_modesense6_task(struct iscsi_context *iscsi, int lun, int dbd, int pc,
 				"modesense6 cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -1988,7 +1990,7 @@ iscsi_modesense6_task(struct iscsi_context *iscsi, int lun, int dbd, int pc,
 }
 
 struct scsi_task *
-iscsi_modesense10_task(struct iscsi_context *iscsi, int lun,
+iscsi_modesense10_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
 		       int llbaa, int dbd, int pc,
 		       int page_code, int sub_page_code,
 		       unsigned char alloc_len,
@@ -2003,7 +2005,7 @@ iscsi_modesense10_task(struct iscsi_context *iscsi, int lun,
 				"modesense10 cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2013,7 +2015,7 @@ iscsi_modesense10_task(struct iscsi_context *iscsi, int lun,
 }
 
 struct scsi_task *
-iscsi_startstopunit_task(struct iscsi_context *iscsi, int lun,
+iscsi_startstopunit_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
 			 int immed, int pcm, int pc,
 			 int no_flush, int loej, int start,
 			 iscsi_command_cb cb, void *private_data)
@@ -2027,7 +2029,7 @@ iscsi_startstopunit_task(struct iscsi_context *iscsi, int lun,
 				"startstopunit cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2037,7 +2039,7 @@ iscsi_startstopunit_task(struct iscsi_context *iscsi, int lun,
 }
 
 struct scsi_task *
-iscsi_preventallow_task(struct iscsi_context *iscsi, int lun,
+iscsi_preventallow_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
 			int prevent,
 			iscsi_command_cb cb, void *private_data)
 {
@@ -2049,7 +2051,7 @@ iscsi_preventallow_task(struct iscsi_context *iscsi, int lun,
 				"PreventAllowMediumRemoval cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2059,7 +2061,7 @@ iscsi_preventallow_task(struct iscsi_context *iscsi, int lun,
 }
 
 struct scsi_task *
-iscsi_synchronizecache10_task(struct iscsi_context *iscsi, int lun, int lba,
+iscsi_synchronizecache10_task(struct iscsi_context *iscsi, int lun, uint64_t slu, int lba,
 			       int num_blocks, int syncnv, int immed,
 			       iscsi_command_cb cb, void *private_data)
 {
@@ -2072,7 +2074,7 @@ iscsi_synchronizecache10_task(struct iscsi_context *iscsi, int lun, int lba,
 				"synchronizecache10 cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2082,7 +2084,7 @@ iscsi_synchronizecache10_task(struct iscsi_context *iscsi, int lun, int lba,
 }
 
 struct scsi_task *
-iscsi_synchronizecache16_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
+iscsi_synchronizecache16_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint64_t lba,
 			       uint32_t num_blocks, int syncnv, int immed,
 			       iscsi_command_cb cb, void *private_data)
 {
@@ -2095,7 +2097,7 @@ iscsi_synchronizecache16_task(struct iscsi_context *iscsi, int lun, uint64_t lba
 				"synchronizecache16 cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2105,7 +2107,7 @@ iscsi_synchronizecache16_task(struct iscsi_context *iscsi, int lun, uint64_t lba
 }
 
 struct scsi_task *
-iscsi_persistent_reserve_in_task(struct iscsi_context *iscsi, int lun,
+iscsi_persistent_reserve_in_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
 				 int sa, uint16_t xferlen,
 				 iscsi_command_cb cb, void *private_data)
 {
@@ -2117,7 +2119,7 @@ iscsi_persistent_reserve_in_task(struct iscsi_context *iscsi, int lun,
 				"persistent-reserver-in cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2127,7 +2129,7 @@ iscsi_persistent_reserve_in_task(struct iscsi_context *iscsi, int lun,
 }
 
 struct scsi_task *
-iscsi_persistent_reserve_out_task(struct iscsi_context *iscsi, int lun,
+iscsi_persistent_reserve_out_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
 				  int sa, int scope, int type, void *param,
 				  iscsi_command_cb cb, void *private_data)
 {
@@ -2139,7 +2141,7 @@ iscsi_persistent_reserve_out_task(struct iscsi_context *iscsi, int lun,
 				"persistent-reserver-out cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2149,7 +2151,7 @@ iscsi_persistent_reserve_out_task(struct iscsi_context *iscsi, int lun,
 }
 
 struct scsi_task *
-iscsi_prefetch10_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
+iscsi_prefetch10_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint32_t lba,
 		      int num_blocks, int immed, int group,
 		      iscsi_command_cb cb, void *private_data)
 {
@@ -2161,7 +2163,7 @@ iscsi_prefetch10_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 				"prefetch10 cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2171,7 +2173,7 @@ iscsi_prefetch10_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 }
 
 struct scsi_task *
-iscsi_prefetch16_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
+iscsi_prefetch16_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint64_t lba,
 		      int num_blocks, int immed, int group,
 		      iscsi_command_cb cb, void *private_data)
 {
@@ -2183,7 +2185,7 @@ iscsi_prefetch16_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 				"prefetch16 cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2193,7 +2195,7 @@ iscsi_prefetch16_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 }
 
 struct scsi_task *
-iscsi_writesame10_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
+iscsi_writesame10_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint32_t lba,
 		       unsigned char *data, uint32_t datalen,
 		       uint16_t num_blocks,
 		       int anchor, int unmap, int wrprotect, int group,
@@ -2218,7 +2220,7 @@ iscsi_writesame10_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 		task->expxferlen = 0;
 		task->xfer_dir = SCSI_XFER_NONE;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2227,7 +2229,7 @@ iscsi_writesame10_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 }
 
 struct scsi_task *
-iscsi_writesame10_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
+iscsi_writesame10_iov_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint32_t lba,
 			   unsigned char *data, uint32_t datalen,
 			   uint16_t num_blocks,
 			   int anchor, int unmap, int wrprotect, int group,
@@ -2256,7 +2258,7 @@ iscsi_writesame10_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 		task->expxferlen = 0;
 		task->xfer_dir = SCSI_XFER_NONE;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2265,7 +2267,7 @@ iscsi_writesame10_iov_task(struct iscsi_context *iscsi, int lun, uint32_t lba,
 }
 
 struct scsi_task *
-iscsi_writesame16_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
+iscsi_writesame16_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint64_t lba,
 		       unsigned char *data, uint32_t datalen,
 		       uint32_t num_blocks,
 		       int anchor, int unmap, int wrprotect, int group,
@@ -2291,7 +2293,7 @@ iscsi_writesame16_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 		task->xfer_dir = SCSI_XFER_NONE;
 	}
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2301,7 +2303,7 @@ iscsi_writesame16_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 }
 
 struct scsi_task *
-iscsi_writesame16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
+iscsi_writesame16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t slu, uint64_t lba,
 			   unsigned char *data, uint32_t datalen,
 			   uint32_t num_blocks,
 			   int anchor, int unmap, int wrprotect, int group,
@@ -2331,7 +2333,7 @@ iscsi_writesame16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 		task->xfer_dir = SCSI_XFER_NONE;
 	}
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     &d, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2341,7 +2343,7 @@ iscsi_writesame16_iov_task(struct iscsi_context *iscsi, int lun, uint64_t lba,
 }
 
 struct scsi_task *
-iscsi_unmap_task(struct iscsi_context *iscsi, int lun, int anchor, int group,
+iscsi_unmap_task(struct iscsi_context *iscsi, int lun, uint64_t slu, int anchor, int group,
 		 struct unmap_list *list, int list_len,
 		 iscsi_command_cb cb, void *private_data)
 {
@@ -2384,7 +2386,7 @@ iscsi_unmap_task(struct iscsi_context *iscsi, int lun, int anchor, int group,
 	iov->iov_len  = xferlen;
 	scsi_task_set_iov_out(task, iov, 1);
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2432,7 +2434,7 @@ iscsi_get_scsi_task_iovector_out(struct iscsi_context *iscsi _U_, struct iscsi_p
 }
 
 struct scsi_task *
-iscsi_readtoc_task(struct iscsi_context *iscsi, int lun, int msf,
+iscsi_readtoc_task(struct iscsi_context *iscsi, int lun, uint64_t slu, int msf,
 		   int format, int track_session, int maxsize,
 		   iscsi_command_cb cb, void *private_data)
 {
@@ -2444,7 +2446,7 @@ iscsi_readtoc_task(struct iscsi_context *iscsi, int lun, int msf,
 				"read TOC cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2454,7 +2456,7 @@ iscsi_readtoc_task(struct iscsi_context *iscsi, int lun, int msf,
 }
 
 struct scsi_task *
-iscsi_reserve6_task(struct iscsi_context *iscsi, int lun,
+iscsi_reserve6_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
 		    iscsi_command_cb cb, void *private_data)
 {
 	struct scsi_task *task;
@@ -2465,7 +2467,7 @@ iscsi_reserve6_task(struct iscsi_context *iscsi, int lun,
 				"reserve6 cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2475,7 +2477,7 @@ iscsi_reserve6_task(struct iscsi_context *iscsi, int lun,
 }
 
 struct scsi_task *
-iscsi_release6_task(struct iscsi_context *iscsi, int lun,
+iscsi_release6_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
 		    iscsi_command_cb cb, void *private_data)
 {
 	struct scsi_task *task;
@@ -2486,7 +2488,7 @@ iscsi_release6_task(struct iscsi_context *iscsi, int lun,
 				"release6 cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2497,7 +2499,7 @@ iscsi_release6_task(struct iscsi_context *iscsi, int lun,
 
 
 struct scsi_task *
-iscsi_sanitize_task(struct iscsi_context *iscsi, int lun,
+iscsi_sanitize_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
 		    int immed, int ause, int sa, int param_len,
 		    struct iscsi_data *data,
 		    iscsi_command_cb cb, void *private_data)
@@ -2510,7 +2512,7 @@ iscsi_sanitize_task(struct iscsi_context *iscsi, int lun,
 				"sanitize cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     data, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2520,7 +2522,7 @@ iscsi_sanitize_task(struct iscsi_context *iscsi, int lun,
 }
 
 struct scsi_task *
-iscsi_sanitize_block_erase_task(struct iscsi_context *iscsi, int lun,
+iscsi_sanitize_block_erase_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
 		    int immed, int ause,
 		    iscsi_command_cb cb, void *private_data)
 {
@@ -2532,7 +2534,7 @@ iscsi_sanitize_block_erase_task(struct iscsi_context *iscsi, int lun,
 				"sanitize cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2542,7 +2544,7 @@ iscsi_sanitize_block_erase_task(struct iscsi_context *iscsi, int lun,
 }
 
 struct scsi_task *
-iscsi_sanitize_crypto_erase_task(struct iscsi_context *iscsi, int lun,
+iscsi_sanitize_crypto_erase_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
 		    int immed, int ause,
 		    iscsi_command_cb cb, void *private_data)
 {
@@ -2554,7 +2556,7 @@ iscsi_sanitize_crypto_erase_task(struct iscsi_context *iscsi, int lun,
 				"sanitize cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2564,7 +2566,7 @@ iscsi_sanitize_crypto_erase_task(struct iscsi_context *iscsi, int lun,
 }
 
 struct scsi_task *
-iscsi_sanitize_exit_failure_mode_task(struct iscsi_context *iscsi, int lun,
+iscsi_sanitize_exit_failure_mode_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
 		    int immed, int ause,
 		    iscsi_command_cb cb, void *private_data)
 {
@@ -2577,7 +2579,7 @@ iscsi_sanitize_exit_failure_mode_task(struct iscsi_context *iscsi, int lun,
 				"sanitize cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2587,7 +2589,7 @@ iscsi_sanitize_exit_failure_mode_task(struct iscsi_context *iscsi, int lun,
 }
 
 struct scsi_task *
-iscsi_report_supported_opcodes_task(struct iscsi_context *iscsi, int lun,
+iscsi_report_supported_opcodes_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
 				    int rctd, int options,
 				    int opcode, int sa,
 				    uint32_t alloc_len,
@@ -2602,7 +2604,7 @@ iscsi_report_supported_opcodes_task(struct iscsi_context *iscsi, int lun,
 				"Maintenance In/Read Supported Op Codes cdb.");
 		return NULL;
 	}
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2612,7 +2614,7 @@ iscsi_report_supported_opcodes_task(struct iscsi_context *iscsi, int lun,
 }
 
 struct scsi_task *
-iscsi_receive_copy_results_task(struct iscsi_context *iscsi, int lun,
+iscsi_receive_copy_results_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
 				int sa, int list_id, int alloc_len,
 				iscsi_command_cb cb, void *private_data)
 {
@@ -2625,7 +2627,7 @@ iscsi_receive_copy_results_task(struct iscsi_context *iscsi, int lun,
 		return NULL;
 	}
 
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     NULL, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;
@@ -2635,7 +2637,7 @@ iscsi_receive_copy_results_task(struct iscsi_context *iscsi, int lun,
 }
 
 struct scsi_task *
-iscsi_extended_copy_task(struct iscsi_context *iscsi, int lun,
+iscsi_extended_copy_task(struct iscsi_context *iscsi, int lun, uint64_t slu,
 			 struct iscsi_data *param_data,
 			 iscsi_command_cb cb, void *private_data)
 {
@@ -2647,8 +2649,8 @@ iscsi_extended_copy_task(struct iscsi_context *iscsi, int lun,
 				"EXTENDED COPY cdb.");
 		return NULL;
 	}
-
-	if (iscsi_scsi_command_async(iscsi, lun, task, cb,
+	/* XCOPY command for PE only */
+	if (iscsi_scsi_command_async(iscsi, lun, slu, task, cb,
 				     param_data, private_data) != 0) {
 		scsi_free_scsi_task(task);
 		return NULL;

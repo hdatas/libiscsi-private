@@ -149,14 +149,14 @@ int main(int argc, char *argv[])
 	iscsi_set_session_type(iscsi, ISCSI_SESSION_NORMAL);
 	iscsi_set_header_digest(iscsi, ISCSI_HEADER_DIGEST_NONE_CRC32C);
 
-	if (iscsi_full_connect_sync(iscsi, iscsi_url->portal, iscsi_url->lun) != 0) {
+	if (iscsi_full_connect_sync(iscsi, iscsi_url->portal, iscsi_url->lun, iscsi_url->slu) != 0) {
 		fprintf(stderr, "Login Failed. %s\n", iscsi_get_error(iscsi));
 		iscsi_destroy_url(iscsi_url);
 		iscsi_destroy_context(iscsi);
 		exit(10);
 	}
 
-	task = iscsi_readcapacity16_sync(iscsi, iscsi_url->lun);
+	task = iscsi_readcapacity16_sync(iscsi, iscsi_url->lun, iscsi_url->slu);
 	if (task == NULL || task->status != SCSI_STATUS_GOOD) {
 		fprintf(stderr,"failed to send readcapacity command\n");
 		iscsi_destroy_url(iscsi_url);

@@ -56,7 +56,7 @@ test_preventallow_lun_reset(void)
                       EXPECT_STATUS_GOOD);
         
         logging(LOG_VERBOSE, "Perform LUN reset on target");
-        ret = iscsi_task_mgmt_lun_reset_sync(sd->iscsi_ctx, sd->iscsi_lun);
+        ret = iscsi_task_mgmt_lun_reset_sync(sd->iscsi_ctx, sd->iscsi_lun, sd->iscsi_slu);
         CU_ASSERT_EQUAL(ret, 0);
         logging(LOG_VERBOSE, "Wait until all unit attentions clear");
         while (testunitready(sd, EXPECT_STATUS_GOOD) != 0)

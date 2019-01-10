@@ -48,6 +48,7 @@ struct client_state {
        int finished;
        int status;
        int lun;
+       uint64_t slu;
 };
 
 #define TIMER_START(x) gettimeofday(&x, NULL)
@@ -225,7 +226,8 @@ int main(int argc, char *argv[])
 	iscsi_set_session_type(iscsi, ISCSI_SESSION_NORMAL);
 
 	state.lun = iscsi_url->lun;
-	if (iscsi_full_connect_sync(iscsi, iscsi_url->portal, iscsi_url->lun)
+	state.lun = iscsi_url->slu;
+	if (iscsi_full_connect_sync(iscsi, iscsi_url->portal, iscsi_url->lun, iscsi_url->slu)
 	    != 0) {
 		fprintf(stderr, "iscsi_connect failed. %s\n",
 			iscsi_get_error(iscsi));
@@ -239,7 +241,7 @@ int main(int argc, char *argv[])
 	event_loop(iscsi, &state, 5);
 
 	printf("Verify that the connection still works\n");
-	if (iscsi_testunitready_task(iscsi, state.lun,
+	if (iscsi_testunitready_task(iscsi, state.lun, state.slu,
 				     tur_cb, &state) == NULL) {
 		fprintf(stderr, "testunitready failed\n");
 		exit(10);

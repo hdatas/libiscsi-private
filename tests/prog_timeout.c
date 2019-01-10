@@ -195,7 +195,7 @@ int main(int argc, char *argv[])
 
 	iscsi_set_session_type(iscsi, ISCSI_SESSION_NORMAL);
 
-	if (iscsi_full_connect_sync(iscsi, iscsi_url->portal, iscsi_url->lun)
+	if (iscsi_full_connect_sync(iscsi, iscsi_url->portal, iscsi_url->lun, iscsi_url->slu)
 	    != 0) {
 		fprintf(stderr, "iscsi_connect failed. %s\n",
 			iscsi_get_error(iscsi));
@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
 
 	printf("Send a TUR we will never get a reply for\n");
 	count++;
-	iscsi_testunitready_task(iscsi, iscsi_url->lun, tur_cb, &count);
+	iscsi_testunitready_task(iscsi, iscsi_url->lun, iscsi_url->slu,tur_cb, &count);
 
 	printf("Send a LOGOUT we will never get a reply for\n");
 	count++;

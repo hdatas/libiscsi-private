@@ -69,7 +69,7 @@ test_read10_residuals(void)
 
         logging(LOG_VERBOSE, "Try reading one block but with iSCSI expected transfer length==0");
 
-        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, task, NULL);
+        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, sd->iscsi_slu, task, NULL);
         CU_ASSERT_PTR_NOT_NULL_FATAL(task_ret);
         CU_ASSERT_NOT_EQUAL(task->status, SCSI_STATUS_CANCELLED); /* XXX redundant? */
 
@@ -113,7 +113,7 @@ test_read10_residuals(void)
         task->xfer_dir = SCSI_XFER_READ;
         task->expxferlen = 10000;
 
-        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, task, NULL);
+        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, sd->iscsi_slu, task, NULL);
         CU_ASSERT_PTR_NOT_NULL_FATAL(task_ret);
 
         logging(LOG_VERBOSE, "Verify that the target returned SUCCESS");
@@ -161,7 +161,7 @@ test_read10_residuals(void)
         task->xfer_dir = SCSI_XFER_READ;
         task->expxferlen = 200;
 
-        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, task, NULL);
+        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, sd->iscsi_slu, task, NULL);
         CU_ASSERT_PTR_NOT_NULL_FATAL(task_ret);
 
         logging(LOG_VERBOSE, "Verify that the target returned SUCCESS");
@@ -207,7 +207,7 @@ test_read10_residuals(void)
         task->xfer_dir = SCSI_XFER_READ;
         task->expxferlen = block_size;
 
-        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, task, NULL);
+        task_ret = iscsi_scsi_command_sync(sd->iscsi_ctx, sd->iscsi_lun, sd->iscsi_slu, task, NULL);
         CU_ASSERT_PTR_NOT_NULL_FATAL(task_ret);
 
         logging(LOG_VERBOSE, "Verify that the target returned SUCCESS");

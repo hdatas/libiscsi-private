@@ -47,7 +47,7 @@ test_reserve6_lun_reset(void)
         RESERVE6(sd);
 
         logging(LOG_VERBOSE, "Send a LUN Reset");
-        ret = iscsi_task_mgmt_lun_reset_sync(sd->iscsi_ctx, sd->iscsi_lun);
+        ret = iscsi_task_mgmt_lun_reset_sync(sd->iscsi_ctx, sd->iscsi_lun, sd->iscsi_slu );
         if (ret != 0) {
                 logging(LOG_NORMAL, "LUN reset failed. %s", iscsi_get_error(sd->iscsi_ctx));
         }
@@ -61,6 +61,7 @@ test_reserve6_lun_reset(void)
         memset(&sd2, 0, sizeof(sd2));
         sd2.iscsi_url = sd->iscsi_url;
         sd2.iscsi_lun = sd->iscsi_lun;
+        sd2.iscsi_slu = sd->iscsi_slu;
         sd2.iscsi_ctx = iscsi_context_login(initiatorname2, sd2.iscsi_url, &sd2.iscsi_lun);
         if (sd2.iscsi_ctx == NULL) {
                 logging(LOG_VERBOSE, "Failed to login to target");

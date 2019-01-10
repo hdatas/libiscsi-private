@@ -762,6 +762,7 @@ struct scsi_device {
 
         struct iscsi_context *iscsi_ctx;
         int iscsi_lun;
+        uint64_t iscsi_slu;
         char *iscsi_url;
 
         char *sgio_dev;

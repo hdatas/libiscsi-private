@@ -45,6 +45,7 @@ struct client_state {
        int finished;
        int status;
        int lun;
+       uint64_t slu;
        int concurrency;
        int read_pos;
        int num_remaining;
@@ -73,7 +74,7 @@ void event_loop(struct iscsi_context *iscsi, struct client_state *state)
 			sleep(1);
 			printf("change portal back to the right portal\n");
 			iscsi_full_connect_async(iscsi, state->portal,
-						 state->lun, NULL, NULL);
+						 state->lun, 0,NULL, NULL);
 		}
 		if (poll(&pfd, 1, -1) < 0) {
 			fprintf(stderr, "Poll failed");
@@ -139,7 +140,7 @@ void read_cb(struct iscsi_context *iscsi, int status,
 		 * returning 0, signaling a 'wait and try again later'.
 		 */
 		printf("change portal to point to a closed socket\n");
-		iscsi_full_connect_async(iscsi, "127.0.0.1:1", state->lun,
+		iscsi_full_connect_async(iscsi, "127.0.0.1:1", state->lun, 0,
 					 NULL, NULL);
 
 		count = write(iscsi_get_fd(iscsi), buf, sizeof(buf));
@@ -159,7 +160,7 @@ void read_cb(struct iscsi_context *iscsi, int status,
 
 		printf("SENT READ for LBA %d\n", r16_state->lba);
 		if (iscsi_read16_task(iscsi,
-				      state->lun, r16_state->lba,
+				      state->lun, state->slu, r16_state->lba,
 				      state->block_size,
 				      state->block_size, 0, 0, 0, 0, 0,
 				      read_cb, r16_state) == NULL) {
@@ -308,13 +309,13 @@ int main(int argc, char *argv[])
 	iscsi_set_session_type(iscsi, ISCSI_SESSION_NORMAL);
 
 	state.lun = iscsi_url->lun;
-	if (iscsi_full_connect_sync(iscsi, iscsi_url->portal, iscsi_url->lun)
+	if (iscsi_full_connect_sync(iscsi, iscsi_url->portal, iscsi_url->lun, iscsi_url->slu)
 	    != 0) {
 		fprintf(stderr, "iscsi_connect failed. %s\n",
 			iscsi_get_error(iscsi));
 		exit(10);
 	}
-	task = iscsi_readcapacity10_sync(iscsi, iscsi_url->lun, 0, 0);
+	task = iscsi_readcapacity10_sync(iscsi, iscsi_url->lun, iscsi_url->slu, 0, 0);
 	if (task == NULL || task->status != SCSI_STATUS_GOOD) {
 		fprintf(stderr, "failed to send readcapacity command\n");
 		exit(10);
@@ -344,6 +345,7 @@ int main(int argc, char *argv[])
 		printf("SENT READ for LBA %d\n", r16_state->lba);
 		if (iscsi_read16_task(iscsi,
 				      state.lun,
+				      state.slu,
 				      r16_state->lba,
 				      state.block_size,
 				      state.block_size, 0, 0, 0, 0, 0,

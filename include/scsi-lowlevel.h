@@ -323,6 +323,7 @@ struct scsi_task {
 	uint32_t itt;
 	uint32_t cmdsn;
 	uint32_t lun;
+	uint64_t slu;
 
 	struct scsi_iovector iovector_in;
 	struct scsi_iovector iovector_out;

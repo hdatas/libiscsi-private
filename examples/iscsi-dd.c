@@ -37,6 +37,7 @@ struct client {
 
 	struct iscsi_context *src_iscsi;
 	int src_lun;
+	uint64_t src_slu;
 	int src_blocksize;
 	uint64_t src_num_blocks;
 	struct scsi_inquiry_device_designator src_tgt_desig;
@@ -44,6 +45,7 @@ struct client {
 
 	struct iscsi_context *dst_iscsi;
 	int dst_lun;
+	uint64_t dst_slu;
 	int dst_blocksize;
 	uint64_t dst_num_blocks;
 	struct scsi_inquiry_device_designator dst_tgt_desig;
@@ -133,7 +135,7 @@ void read_cb(struct iscsi_context *iscsi _U_, int status, void *command_data, vo
 			printf("Failed to unmarshall READ16 CDB.\n");
 			exit(10);
 		}
-		task2 = iscsi_write16_task(client->dst_iscsi, client->dst_lun,
+		task2 = iscsi_write16_task(client->dst_iscsi, client->dst_lun, client->dst_slu,
 									read16_cdb->lba, task->datain.data, task->datain.size,
 									client->dst_blocksize, 0, 0, 0, 0, 0,
 									write_cb, wt);
@@ -143,7 +145,7 @@ void read_cb(struct iscsi_context *iscsi _U_, int status, void *command_data, vo
 			printf("Failed to unmarshall READ16 CDB.\n");
 			exit(10);
 		}
-		task2 = iscsi_write10_task(client->dst_iscsi, client->dst_lun,
+		task2 = iscsi_write10_task(client->dst_iscsi, client->dst_lun, client->dst_lun,
 									read10_cdb->lba, task->datain.data, task->datain.size,
 									client->dst_blocksize, 0, 0, 0, 0, 0,
 									write_cb, wt);
@@ -171,13 +173,13 @@ void fill_read_queue(struct client *client)
 
 		if (client->use_16_for_rw) {
 			task = iscsi_read16_task(client->src_iscsi,
-									client->src_lun, client->pos,
+									client->src_lun, client->src_slu, client->pos,
 									num_blocks * client->src_blocksize,
 									client->src_blocksize, 0, 0, 0, 0, 0,
 									read_cb, client);
 		} else {
 			task = iscsi_read10_task(client->src_iscsi,
-									client->src_lun, client->pos,
+									client->src_lun, client->src_slu, client->pos,
 									num_blocks * client->src_blocksize,
 									client->src_blocksize, 0, 0, 0, 0, 0,
 									read_cb, client);
@@ -361,7 +363,7 @@ void fill_xcopy_queue(struct client *client)
 				tgt_desc_len, seg_desc_len, 0);
 
 		task = iscsi_extended_copy_task(client->src_iscsi,
-						client->src_lun,
+						client->src_lun, client->src_slu,
 						&data, xcopy_cb, client);
 		if (task == NULL) {
 			printf("failed to send XCOPY command\n");
@@ -382,7 +384,7 @@ void cscd_ident_inq(struct iscsi_context *iscsi,
 	enum scsi_designator_type prev_type = 0;
 
 	/* check what type of lun we have */
-	task = iscsi_inquiry_sync(iscsi, lun, 1,
+	task = iscsi_inquiry_sync(iscsi, lun, 0, 1,
 			SCSI_INQUIRY_PAGECODE_DEVICE_IDENTIFICATION, 255);
 	if (task == NULL || task->status != SCSI_STATUS_GOOD) {
 		fprintf(stderr, "failed to send inquiry command: %s\n",
@@ -436,7 +438,7 @@ void cscd_param_check(struct iscsi_context *iscsi,
 	struct scsi_copy_results_op_params *opp;
 	uint32_t io_segment_bytes;
 
-	task = iscsi_receive_copy_results_sync(iscsi, lun,
+	task = iscsi_receive_copy_results_sync(iscsi, lun, 0,
 					SCSI_COPY_RESULTS_OP_PARAMS, 0, 1024);
 	if (task == NULL || task->status != SCSI_STATUS_GOOD) {
 		fprintf(stderr, "XCOPY RECEIVE COPY RESULTS failed: %s\n",
@@ -478,7 +480,7 @@ void cscd_param_check(struct iscsi_context *iscsi,
 	scsi_free_scsi_task(task);
 }
 
-void readcap(struct iscsi_context *iscsi, int lun, int use_16,
+void readcap(struct iscsi_context *iscsi, int lun, uint64_t slu, int use_16,
 		int *_blocksize, uint64_t *_num_blocks)
 {
 	struct scsi_task *task;
@@ -486,7 +488,7 @@ void readcap(struct iscsi_context *iscsi, int lun, int use_16,
 	if (use_16) {
 		struct scsi_readcapacity16 *rc16;
 
-		task = iscsi_readcapacity16_sync(iscsi, lun);
+		task = iscsi_readcapacity16_sync(iscsi, lun, slu);
 		if (task == NULL || task->status != SCSI_STATUS_GOOD) {
 			fprintf(stderr,
 				"failed to send readcapacity command\n");
@@ -503,7 +505,7 @@ void readcap(struct iscsi_context *iscsi, int lun, int use_16,
 	} else {
 		struct scsi_readcapacity10 *rc10;
 
-		task = iscsi_readcapacity10_sync(iscsi, lun, 0, 0);
+		task = iscsi_readcapacity10_sync(iscsi, lun, slu, 0, 0);
 		if (task == NULL || task->status != SCSI_STATUS_GOOD) {
 			fprintf(stderr,
 				"failed to send readcapacity command\n");
@@ -620,16 +622,17 @@ int main(int argc, char *argv[])
 	}
 	iscsi_set_session_type(client.src_iscsi, ISCSI_SESSION_NORMAL);
 	iscsi_set_header_digest(client.src_iscsi, ISCSI_HEADER_DIGEST_NONE_CRC32C);
-	if (iscsi_full_connect_sync(client.src_iscsi, iscsi_url->portal, iscsi_url->lun) != 0) {
+	if (iscsi_full_connect_sync(client.src_iscsi, iscsi_url->portal, iscsi_url->lun, iscsi_url->slu) != 0) {
 		fprintf(stderr, "Login Failed. %s\n", iscsi_get_error(client.src_iscsi));
 		iscsi_destroy_url(iscsi_url);
 		iscsi_destroy_context(client.src_iscsi);
 		exit(10);
 	}
 	client.src_lun = iscsi_url->lun;
+	client.src_slu = iscsi_url->slu;
 	iscsi_destroy_url(iscsi_url);
 
-	readcap(client.src_iscsi, client.src_lun, client.use_16_for_rw,
+	readcap(client.src_iscsi, client.src_lun, client.src_slu, client.use_16_for_rw,
 		&client.src_blocksize, &client.src_num_blocks);
 
 	if (client.use_xcopy) {
@@ -652,16 +655,17 @@ int main(int argc, char *argv[])
 	}
 	iscsi_set_session_type(client.dst_iscsi, ISCSI_SESSION_NORMAL);
 	iscsi_set_header_digest(client.dst_iscsi, ISCSI_HEADER_DIGEST_NONE_CRC32C);
-	if (iscsi_full_connect_sync(client.dst_iscsi, iscsi_url->portal, iscsi_url->lun) != 0) {
+	if (iscsi_full_connect_sync(client.dst_iscsi, iscsi_url->portal, iscsi_url->lun, iscsi_url->slu) != 0) {
 		fprintf(stderr, "Login Failed. %s\n", iscsi_get_error(client.dst_iscsi));
 		iscsi_destroy_url(iscsi_url);
 		iscsi_destroy_context(client.dst_iscsi);
 		exit(10);
 	}
 	client.dst_lun = iscsi_url->lun;
+	client.dst_slu = iscsi_url->slu;
 	iscsi_destroy_url(iscsi_url);
 
-	readcap(client.dst_iscsi, client.dst_lun, client.use_16_for_rw,
+	readcap(client.dst_iscsi, client.dst_lun, client.dst_slu, client.use_16_for_rw,
 		&client.dst_blocksize, &client.dst_num_blocks);
 
 	if (client.use_xcopy) {

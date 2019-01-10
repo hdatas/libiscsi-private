@@ -44,6 +44,7 @@ struct connect_task {
 	void *private_data;
 	int lun;
 	int num_uas;
+	uint64_t slu;
 };
 
 static void
@@ -64,14 +65,14 @@ iscsi_connect_cb(struct iscsi_context *iscsi, int status, void *command_data _U_
  * to defer this command until later.
  */
 static struct scsi_task *
-iscsi_testunitready_connect(struct iscsi_context *iscsi, int lun,
+iscsi_testunitready_connect(struct iscsi_context *iscsi, int lun, uint64_t slu,
 			    iscsi_command_cb cb, void *private_data)
 {
 	struct scsi_task *task;
 	struct iscsi_context *old_iscsi = iscsi->old_iscsi;
 
 	iscsi->old_iscsi = NULL;
-	task = iscsi_testunitready_task(iscsi, lun, cb, private_data);
+	task = iscsi_testunitready_task(iscsi, lun, slu, cb, private_data);
 	iscsi->old_iscsi = old_iscsi;
 
 	return task;
@@ -103,7 +104,7 @@ iscsi_testunitready_cb(struct iscsi_context *iscsi, int status,
 				scsi_free_scsi_task(task);
 				return;
 			}
-			if (iscsi_testunitready_connect(iscsi, ct->lun,
+			if (iscsi_testunitready_connect(iscsi, ct->lun, ct->slu,
 							iscsi_testunitready_cb,
 							ct) == NULL) {
 				iscsi_set_error(iscsi, "iscsi_testunitready "
@@ -171,7 +172,7 @@ iscsi_login_cb(struct iscsi_context *iscsi, int status, void *command_data _U_,
 	   UAs that might be present.
 	*/
 	if (iscsi->no_ua_on_reconnect || (ct->lun != -1 && !iscsi->old_iscsi)) {
-		if (iscsi_testunitready_connect(iscsi, ct->lun,
+		if (iscsi_testunitready_connect(iscsi, ct->lun, ct->slu,
 						iscsi_testunitready_cb,
 						ct) == NULL) {
 			iscsi_set_error(iscsi, "iscsi_testunitready_async failed.");
@@ -209,11 +210,12 @@ iscsi_connect_cb(struct iscsi_context *iscsi, int status, void *command_data _U_
 
 int
 iscsi_full_connect_async(struct iscsi_context *iscsi, const char *portal,
-			 int lun, iscsi_command_cb cb, void *private_data)
+			 int lun, uint64_t slu, iscsi_command_cb cb, void *private_data)
 {
 	struct connect_task *ct;
 
 	iscsi->lun = lun;
+	iscsi->slu = slu;
 	if (iscsi->portal != portal) {
 		strncpy(iscsi->portal, portal, MAX_STRING_SIZE);
 	}
@@ -226,6 +228,7 @@ iscsi_full_connect_async(struct iscsi_context *iscsi, const char *portal,
 	}
 	ct->cb           = cb;
 	ct->lun          = lun;
+	ct->slu          = slu;
 	ct->num_uas      = 0;
 	ct->private_data = private_data;
 	if (iscsi_connect_async(iscsi, portal, iscsi_connect_cb, ct) != 0) {
@@ -342,7 +345,7 @@ void iscsi_reconnect_cb(struct iscsi_context *iscsi _U_, int status,
 		 * been converted to a task-> iovector first time this
 		 * PDU was sent.
 		 */
-		if (iscsi_scsi_command_async(iscsi, pdu->lun,
+		if (iscsi_scsi_command_async(iscsi, pdu->lun, pdu->slu,
 					     pdu->scsi_cbdata.task,
 					     pdu->scsi_cbdata.callback,
 					     NULL,
@@ -464,5 +467,5 @@ int iscsi_reconnect(struct iscsi_context *iscsi)
 	free(tmp_iscsi);
 
 	return iscsi_full_connect_async(iscsi, iscsi->portal,
-	                                iscsi->lun, iscsi_reconnect_cb, NULL);
+	                                iscsi->lun, iscsi->slu, iscsi_reconnect_cb, NULL);
 }

@@ -315,6 +315,7 @@ int iscsi_process_target_nop_in(struct iscsi_context *iscsi,
 	uint32_t ttt = scsi_get_uint32(&in->hdr[20]);
 	uint32_t itt = scsi_get_uint32(&in->hdr[16]);
 	uint32_t lun = scsi_get_uint16(&in->hdr[8]);
+	uint64_t slu = scsi_get_uint64(&in->hdr[10]) >> 16;
 
 	ISCSI_LOG(iscsi, (iscsi->nops_in_flight > 1) ? 1 : 6,
 	          "NOP-In received (pdu->itt %08x, pdu->ttt %08x, pdu->lun %8x, iscsi->maxcmdsn %08x, iscsi->expcmdsn %08x, iscsi->statsn %08x)",
@@ -325,7 +326,7 @@ int iscsi_process_target_nop_in(struct iscsi_context *iscsi,
 		return 0;
 	}
 
-	iscsi_send_target_nop_out(iscsi, ttt, lun);
+	iscsi_send_target_nop_out(iscsi, ttt, lun, slu);
 
 	return 0;
 }
@@ -702,9 +703,10 @@ iscsi_pdu_set_cdb(struct iscsi_pdu *pdu, struct scsi_task *task)
 }
 
 void
-iscsi_pdu_set_lun(struct iscsi_pdu *pdu, uint32_t lun)
+iscsi_pdu_set_lun(struct iscsi_pdu *pdu, uint32_t lun, uint64_t slu)
 {
 	scsi_set_uint16(&pdu->outdata.data[8], lun);
+	scsi_set_uint64(&pdu->outdata.data[10], slu);
 }
 
 void

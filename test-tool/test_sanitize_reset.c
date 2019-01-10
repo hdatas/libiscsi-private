@@ -75,7 +75,7 @@ test_sanitize_reset(void)
         data.data[1] = 0x00;
         data.data[2] = block_size >> 8;
         data.data[3] = block_size & 0xff;
-        sanitize_task = iscsi_sanitize_task(sd->iscsi_ctx, sd->iscsi_lun,
+        sanitize_task = iscsi_sanitize_task(sd->iscsi_ctx, sd->iscsi_lun, sd->iscsi_slu ,
                                             0, 0, SCSI_SANITIZE_OVERWRITE,
                                             data.size, &data,
                                             sanitize_cb, NULL);
@@ -124,14 +124,14 @@ test_sanitize_reset(void)
         }
 
         logging(LOG_VERBOSE, "Send an ABORT TASK SET");
-        ret = iscsi_task_mgmt_abort_task_set_sync(sd->iscsi_ctx, sd->iscsi_lun);
+        ret = iscsi_task_mgmt_abort_task_set_sync(sd->iscsi_ctx, sd->iscsi_lun, sd->iscsi_slu );
         if (ret != 0) {
                 logging(LOG_NORMAL, "ABORT TASK SET failed. %s",
                         iscsi_get_error(sd->iscsi_ctx));
         }
 
         logging(LOG_VERBOSE, "Send a LUN Reset");
-        ret = iscsi_task_mgmt_lun_reset_sync(sd->iscsi_ctx, sd->iscsi_lun);
+        ret = iscsi_task_mgmt_lun_reset_sync(sd->iscsi_ctx, sd->iscsi_lun, sd->iscsi_slu );
         if (ret != 0) {
                 logging(LOG_NORMAL, "LUN reset failed. %s", iscsi_get_error(sd->iscsi_ctx));
         }
