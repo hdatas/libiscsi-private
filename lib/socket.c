@@ -592,9 +592,7 @@ iscsi_iovector_readv_writev(struct iscsi_context *iscsi, struct scsi_iovector *i
 	return n;
 }
 
-static int
-iscsi_read_from_socket(struct iscsi_context *iscsi)
-{
+static int iscsi_read_from_socket(struct iscsi_context *iscsi) {
 	struct iscsi_in_pdu *in;
 	ssize_t hdr_size, data_size, count, padding_size;
 
@@ -723,9 +721,7 @@ static int iscsi_pdu_update_headerdigest(struct iscsi_context *iscsi, struct isc
 	return 0;
 }
 
-static int
-iscsi_write_to_socket(struct iscsi_context *iscsi)
-{
+static int iscsi_write_to_socket(struct iscsi_context *iscsi) {
 	ssize_t count;
 	size_t total;
 	struct iscsi_pdu *pdu;
@@ -748,24 +744,23 @@ iscsi_write_to_socket(struct iscsi_context *iscsi)
 			if (iscsi->is_corked) {
 				/* connection is corked we are not allowed to send
 				 * additional PDUs */
-				ISCSI_LOG(iscsi, 6, "iscsi_write_to_socket: socket is corked");
+				ISCSI_LOG(iscsi, 6, "%s: socket is corked", __FUNCTION__);
 				return 0;
 			}
 			
 			if (iscsi_serial32_compare(iscsi->outqueue->cmdsn, iscsi->maxcmdsn) > 0
 				&& !(iscsi->outqueue->outdata.data[0] & ISCSI_PDU_IMMEDIATE)) {
 				/* stop sending for non-immediate PDUs. maxcmdsn is reached */
-				ISCSI_LOG(iscsi, 6,
-				          "iscsi_write_to_socket: maxcmdsn reached (outqueue[0]->cmdsnd %08x > maxcmdsn %08x)",
-				          iscsi->outqueue->cmdsn, iscsi->maxcmdsn);
+				ISCSI_LOG(iscsi, 6, "%s: maxcmdsn reached (outqueue[0]->cmdsnd %08x > maxcmdsn %08x)",
+            __FUNCTION__, iscsi->outqueue->cmdsn, iscsi->maxcmdsn);
 				return 0;
 			}
 
 			/* pop first element of the outqueue */
 			if (iscsi_serial32_compare(iscsi->outqueue->cmdsn, iscsi->expcmdsn) < 0 &&
 				(iscsi->outqueue->outdata.data[0] & 0x3f) != ISCSI_PDU_DATA_OUT) {
-				iscsi_set_error(iscsi, "iscsi_write_to_socket: outqueue[0]->cmdsn < expcmdsn (%08x < %08x) opcode %02x",
-				                iscsi->outqueue->cmdsn, iscsi->expcmdsn, iscsi->outqueue->outdata.data[0] & 0x3f);
+				iscsi_set_error(iscsi, "%s: outqueue[0]->cmdsn < expcmdsn (%08x < %08x) opcode %02x",
+            __FUNCTION__, iscsi->outqueue->cmdsn, iscsi->expcmdsn, iscsi->outqueue->outdata.data[0] & 0x3f);
 				return -1;
 			}
 			iscsi->outqueue_current = iscsi->outqueue;
@@ -891,12 +886,8 @@ iscsi_service_reconnect_if_loggedin(struct iscsi_context *iscsi)
 	return -1;
 }
 
-static int
-iscsi_tcp_service(struct iscsi_context *iscsi, int revents)
-{
-	if (iscsi->fd < 0) {
-		return 0;
-	}
+static int iscsi_tcp_service(struct iscsi_context *iscsi, int revents) {
+	if (iscsi->fd < 0) return 0;
 
 	if (iscsi->pending_reconnect) {
 		if (time(NULL) >= iscsi->next_reconnect) {
@@ -912,31 +903,24 @@ iscsi_tcp_service(struct iscsi_context *iscsi, int revents)
 		int err = 0;
 		socklen_t err_size = sizeof(err);
 
-		if (getsockopt(iscsi->fd, SOL_SOCKET, SO_ERROR,
-			       (char *)&err, &err_size) != 0 || err != 0) {
+		if (getsockopt(iscsi->fd, SOL_SOCKET, SO_ERROR, (char *)&err, &err_size) != 0 || err != 0) {
 			if (err == 0) {
 				err = errno;
 			}
-			iscsi_set_error(iscsi, "iscsi_service: socket error "
-					"%s(%d).",
-					strerror(err), err);
+			iscsi_set_error(iscsi, "%s: socket error " "%s(%d)", __FUNCTION__, strerror(err), err);
 		} else {
-			iscsi_set_error(iscsi, "iscsi_service: POLLERR, "
-					"Unknown socket error.");
+			iscsi_set_error(iscsi, "%s: POLLERR, Unknown socket error", __FUNCTION__);
 		}
 		if (iscsi->socket_status_cb) {
-			iscsi->socket_status_cb(iscsi, SCSI_STATUS_ERROR, NULL,
-						iscsi->connect_data);
+			iscsi->socket_status_cb(iscsi, SCSI_STATUS_ERROR, NULL, iscsi->connect_data);
 			iscsi->socket_status_cb = NULL;
 		}
 		return iscsi_service_reconnect_if_loggedin(iscsi);
 	}
 	if (revents & POLLHUP) {
-		iscsi_set_error(iscsi, "iscsi_service: POLLHUP, "
-				"socket error.");
+		iscsi_set_error(iscsi, "%s: POLLHUP, socket error", __FUNCTION__);
 		if (iscsi->socket_status_cb) {
-			iscsi->socket_status_cb(iscsi, SCSI_STATUS_ERROR, NULL,
-						iscsi->connect_data);
+			iscsi->socket_status_cb(iscsi, SCSI_STATUS_ERROR, NULL, iscsi->connect_data);
 			iscsi->socket_status_cb = NULL;
 		}
 		return iscsi_service_reconnect_if_loggedin(iscsi);
@@ -948,17 +932,13 @@ iscsi_tcp_service(struct iscsi_context *iscsi, int revents)
 		struct sockaddr_in local;
 		socklen_t local_l = sizeof(local);
 
-		if (getsockopt(iscsi->fd, SOL_SOCKET, SO_ERROR,
-			       (char *)&err, &err_size) != 0 || err != 0) {
+		if (getsockopt(iscsi->fd, SOL_SOCKET, SO_ERROR, (char *)&err, &err_size) != 0 || err != 0) {
 			if (err == 0) {
 				err = errno;
 			}
-			iscsi_set_error(iscsi, "iscsi_service: socket error "
-					"%s(%d) while connecting.",
-					strerror(err), err);
+			iscsi_set_error(iscsi, "%s: socket error %s(%d) while connecting", __FUNCTION__, strerror(err), err);
 			if (iscsi->socket_status_cb) {
-				iscsi->socket_status_cb(iscsi, SCSI_STATUS_ERROR,
-							NULL, iscsi->connect_data);
+				iscsi->socket_status_cb(iscsi, SCSI_STATUS_ERROR, NULL, iscsi->connect_data);
 				iscsi->socket_status_cb = NULL;
 			}
 
@@ -972,8 +952,7 @@ iscsi_tcp_service(struct iscsi_context *iscsi, int revents)
 
 		iscsi->is_connected = 1;
 		if (iscsi->socket_status_cb) {
-			iscsi->socket_status_cb(iscsi, SCSI_STATUS_GOOD, NULL,
-						iscsi->connect_data);
+			iscsi->socket_status_cb(iscsi, SCSI_STATUS_GOOD, NULL, iscsi->connect_data);
 			iscsi->socket_status_cb = NULL;
 		}
 		return 0;

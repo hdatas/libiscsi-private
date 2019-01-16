@@ -1789,44 +1789,35 @@ scsi_cdb_read16(uint64_t lba, uint32_t xferlen, int blocksize, int rdprotect, in
 /*
  * WRITE10
  */
-struct scsi_task *
-scsi_cdb_write10(uint32_t lba, uint32_t xferlen, int blocksize, int wrprotect, int dpo, int fua, int fua_nv, int group_number)
-{
-	struct scsi_task *task;
+struct scsi_task *scsi_cdb_write10(uint32_t lba, uint32_t xferlen, int blocksize,
+    int wrprotect, int dpo, int fua, int fua_nv, int group_number) {
+  struct scsi_task *task;
 
-	task = malloc(sizeof(struct scsi_task));
-	if (task == NULL) {
-		return NULL;
-	}
+  task = malloc(sizeof(struct scsi_task));
+  if (task == NULL) return NULL;
 
-	memset(task, 0, sizeof(struct scsi_task));
-	task->cdb[0]   = SCSI_OPCODE_WRITE10;
+  memset(task, 0, sizeof(struct scsi_task));
+  task->cdb[0]   = SCSI_OPCODE_WRITE10;
 
-	task->cdb[1] |= ((wrprotect & 0x07) << 5);
-	if (dpo) {
-		task->cdb[1] |= 0x10;
-	}
-	if (fua) {
-		task->cdb[1] |= 0x08;
-	}
-	if (fua_nv) {
-		task->cdb[1] |= 0x02;
-	}
+  task->cdb[1] |= ((wrprotect & 0x07) << 5);
+  if (dpo)    task->cdb[1] |= 0x10;
+  if (fua)    task->cdb[1] |= 0x08;
+  if (fua_nv) task->cdb[1] |= 0x02;
 
-	scsi_set_uint32(&task->cdb[2], lba);
-	scsi_set_uint16(&task->cdb[7], xferlen/blocksize);
+  scsi_set_uint32(&task->cdb[2], lba);
+  scsi_set_uint16(&task->cdb[7], xferlen/blocksize);
 
-	task->cdb[6] |= (group_number & 0x1f);
+  task->cdb[6] |= (group_number & 0x1f);
 
-	task->cdb_size = 10;
-	if (xferlen != 0) {
-		task->xfer_dir = SCSI_XFER_WRITE;
-	} else {
-		task->xfer_dir = SCSI_XFER_NONE;
-	}
-	task->expxferlen = xferlen;
+  task->cdb_size = 10;
+  if (xferlen != 0) {
+    task->xfer_dir = SCSI_XFER_WRITE;
+  } else {
+    task->xfer_dir = SCSI_XFER_NONE;
+  }
+  task->expxferlen = xferlen;
 
-	return task;
+  return task;
 }
 
 /*

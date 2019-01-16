@@ -107,7 +107,7 @@ void read_cb(struct iscsi_context *iscsi _U_, int status, void *command_data, vo
   struct write_task *wt;
   struct scsi_read10_cdb *read10_cdb = NULL;
   struct scsi_read16_cdb *read16_cdb = NULL;
-  struct scsi_task *task2;
+  struct scsi_task *task2 = NULL;
 
   if (status == SCSI_STATUS_CHECK_CONDITION) {
     printf("Read10/16 failed with sense key:%d ascq:%04x\n", task->sense.key, task->sense.ascq);
@@ -134,9 +134,8 @@ void read_cb(struct iscsi_context *iscsi _U_, int status, void *command_data, vo
       exit(10);
     }
     task2 = iscsi_write16_task(client->dst_iscsi, client->dst_lun, client->dst_slu,
-        read16_cdb->lba, task->datain.data, task->datain.size,
-        client->dst_blocksize, 0, 0, 0, 0, 0,
-        write_cb, wt);
+        read16_cdb->lba, task->datain.data, task->datain.size, client->dst_blocksize,
+        0, 0, 0, 0, 0, write_cb, wt);
   } else {
     read10_cdb = scsi_cdb_unmarshall(task, SCSI_OPCODE_READ10);
     if (read10_cdb == NULL) {
@@ -144,22 +143,20 @@ void read_cb(struct iscsi_context *iscsi _U_, int status, void *command_data, vo
       exit(10);
     }
     task2 = iscsi_write10_task(client->dst_iscsi, client->dst_lun, client->dst_lun,
-        read10_cdb->lba, task->datain.data, task->datain.size,
-        client->dst_blocksize, 0, 0, 0, 0, 0,
-        write_cb, wt);
+        read10_cdb->lba, task->datain.data, task->datain.size, client->dst_blocksize,
+        0, 0, 0, 0, 0, write_cb, wt);
   }
   if (task2 == NULL) {
-    printf("failed to send read16 command\n");
+    printf("failed to send write16/10 command\n");
     scsi_free_scsi_task(task);
     exit(10);
   }
 }
 
-
 void fill_read_queue(struct client *client) {
   uint32_t num_blocks;
 
-  while(client->in_flight < max_in_flight && client->pos < client->src_num_blocks) {
+  while (client->in_flight < max_in_flight && client->pos < client->src_num_blocks) {
     struct scsi_task *task;
     client->in_flight++;
 
@@ -169,17 +166,13 @@ void fill_read_queue(struct client *client) {
     }
 
     if (client->use_16_for_rw) {
-      task = iscsi_read16_task(client->src_iscsi,
-          client->src_lun, client->src_slu, client->pos,
-          num_blocks * client->src_blocksize,
-          client->src_blocksize, 0, 0, 0, 0, 0,
-          read_cb, client);
+      task = iscsi_read16_task(client->src_iscsi, client->src_lun, client->src_slu,
+          client->pos, num_blocks *client->src_blocksize, client->src_blocksize,
+          0, 0, 0, 0, 0, read_cb, client);
     } else {
-      task = iscsi_read10_task(client->src_iscsi,
-          client->src_lun, client->src_slu, client->pos,
-          num_blocks * client->src_blocksize,
-          client->src_blocksize, 0, 0, 0, 0, 0,
-          read_cb, client);
+      task = iscsi_read10_task(client->src_iscsi, client->src_lun, client->src_slu,
+          client->pos, num_blocks *client->src_blocksize, client->src_blocksize,
+          0, 0, 0, 0, 0, read_cb, client);
     }
     if (task == NULL) {
       printf("failed to send read10/16 command\n");
@@ -189,8 +182,8 @@ void fill_read_queue(struct client *client) {
   }
 }
 
-int populate_tgt_desc(unsigned char *desc,
-    struct scsi_inquiry_device_designator *tgt_desig, int rel_init_port_id, uint32_t block_size) {
+int populate_tgt_desc(unsigned char *desc, struct scsi_inquiry_device_designator *tgt_desig,
+    int rel_init_port_id, uint32_t block_size) {
   desc[0] = IDENT_DESCR_TGT_DESCR;
   desc[1] = 0;	/* peripheral type */
   desc[2] = (rel_init_port_id >> 8) & 0xFF;
@@ -334,25 +327,19 @@ void fill_xcopy_queue(struct client *client) {
 
     /* Initialise CSCD list with one src + one dst descriptor */
     offset = XCOPY_DESC_OFFSET;
-    offset += populate_tgt_desc(xcopybuf + offset,
-        &client->src_tgt_desig,
-        0, client->src_blocksize);
-    offset += populate_tgt_desc(xcopybuf + offset,
-        &client->dst_tgt_desig,
-        0, client->dst_blocksize);
+    offset += populate_tgt_desc(xcopybuf + offset, &client->src_tgt_desig, 0, client->src_blocksize);
+    offset += populate_tgt_desc(xcopybuf + offset, &client->dst_tgt_desig, 0, client->dst_blocksize);
     tgt_desc_len = offset - XCOPY_DESC_OFFSET;
 
     /* Initialise one segment descriptor */
-    seg_desc_len = populate_seg_desc_b2b(xcopybuf + offset, 0, 0,
-        0, 1, num_blocks, client->pos, client->pos);
+    seg_desc_len = populate_seg_desc_b2b(xcopybuf + offset, 0, 0, 0, 1,
+        num_blocks, client->pos, client->pos);
     offset += seg_desc_len;
 
     /* Initialise the parameter list header */
-    populate_param_header(xcopybuf, 1, 0, LIST_ID_USAGE_DISCARD, 0,
-        tgt_desc_len, seg_desc_len, 0);
+    populate_param_header(xcopybuf, 1, 0, LIST_ID_USAGE_DISCARD, 0, tgt_desc_len, seg_desc_len, 0);
 
-    task = iscsi_extended_copy_task(client->src_iscsi,
-        client->src_lun, client->src_slu,
+    task = iscsi_extended_copy_task(client->src_iscsi, client->src_lun, client->src_slu,
         &data, xcopy_cb, client);
     if (task == NULL) {
       printf("failed to send XCOPY command\n");
