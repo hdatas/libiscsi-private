@@ -61,7 +61,7 @@ test_reserve6_logout(void)
         iscsi_destroy_context(sd->iscsi_ctx);
 
         logging(LOG_VERBOSE, "Relogin to target");
-        sd->iscsi_ctx = iscsi_context_login(initiatorname1, sd->iscsi_url, &sd->iscsi_lun);
+        sd->iscsi_ctx = iscsi_context_login(initiatorname1, sd->iscsi_url, &sd->iscsi_lun, &sd->iscsi_slu);
         if (sd->iscsi_ctx == NULL) {
                 logging(LOG_VERBOSE, "Failed to login to target");
                 return;

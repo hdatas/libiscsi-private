@@ -471,7 +471,7 @@ void logging(int level, const char *format, ...) {
   printf("    %s\n", message);
 }
 
-struct iscsi_context *iscsi_context_login(const char *initiatorname, const char *url, int *lun) {
+struct iscsi_context *iscsi_context_login(const char *initiatorname, const char *url, int *lun, uint64_t *slu) {
   struct iscsi_context *iscsi;
   struct iscsi_url *iscsi_url;
 
@@ -507,9 +507,8 @@ struct iscsi_context *iscsi_context_login(const char *initiatorname, const char 
     iscsi_destroy_context(iscsi);
     return NULL;
   }
-  if (lun != NULL) {
-    *lun = iscsi_url->lun;
-  }
+  if (lun != NULL) *lun = iscsi_url->lun;
+  if (slu != NULL) *slu = iscsi_url->slu;
 
   iscsi_destroy_url(iscsi_url);
   return iscsi;
@@ -2269,9 +2268,7 @@ int write10(struct scsi_device *sdev, uint32_t lba, uint32_t datalen, int blocks
 
   logging(LOG_VERBOSE, "Send WRITE10 (Expecting %s) LBA:%d blocks:%d "
       "wrprotect:%d dpo:%d fua:%d fua_nv:%d group:%d",
-      scsi_status_str(status),
-      lba, datalen / blocksize, wrprotect,
-      dpo, fua, fua_nv, group);
+      scsi_status_str(status), lba, datalen / blocksize, wrprotect, dpo, fua, fua_nv, group);
 
   if (!data_loss) {
     printf("--dataloss flag is not set in. Skipping write\n");

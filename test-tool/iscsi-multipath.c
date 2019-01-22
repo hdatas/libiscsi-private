@@ -419,7 +419,7 @@ mpath_sd2_get_or_clone(struct scsi_device *sd1, struct scsi_device **_sd2)
         sd2->iscsi_slu = sd1->iscsi_slu;
         /* VVol login to PE only, so not pass iscsi_slu */
         sd2->iscsi_ctx = iscsi_context_login(initiatorname2, sd2->iscsi_url,
-                                             &sd2->iscsi_lun);
+            &sd2->iscsi_lun, &sd2->iscsi_slu);
         if (sd2->iscsi_ctx == NULL) {
                 logging(LOG_VERBOSE, "Failed to login to target");
                 free(sd2);

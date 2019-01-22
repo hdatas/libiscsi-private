@@ -25,6 +25,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "iscsi-support.h"
 #include "iscsi-test-cu.h"
 
+// ./iscsi-test-cu iscsi://172.16.1.56/iqn.2016-01.com.hcd:pool-1-0/255:123 -t SCSI.Write10.Simple -V -d
 void test_write10_simple(void) {
   int i;
   uint32_t lba;

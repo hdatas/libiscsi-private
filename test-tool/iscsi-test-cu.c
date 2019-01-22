@@ -757,14 +757,14 @@ int suite_init(void) {
   char const *initiatornames[MPATH_MAX_DEVS] = { initiatorname1, initiatorname2 };
 
   for (i = 0; i < mp_num_sds; i++) {
-    if (!mp_sds[i]->iscsi_url) {
-      continue;
-    }
+    if (!mp_sds[i]->iscsi_url) continue;
+
     if (mp_sds[i]->iscsi_ctx) {
       iscsi_logout_sync(mp_sds[i]->iscsi_ctx);
       iscsi_destroy_context(mp_sds[i]->iscsi_ctx);
     }
-    mp_sds[i]->iscsi_ctx = iscsi_context_login(initiatornames[i], mp_sds[i]->iscsi_url, &mp_sds[i]->iscsi_lun);
+    mp_sds[i]->iscsi_ctx = iscsi_context_login(initiatornames[i], mp_sds[i]->iscsi_url,
+        &mp_sds[i]->iscsi_lun, &mp_sds[i]->iscsi_slu);
     if (mp_sds[i]->iscsi_ctx == NULL) {
       fprintf(stderr, "error: Failed to login to target for test set-up\n");
       return 1;
@@ -772,8 +772,7 @@ int suite_init(void) {
     iscsi_set_no_ua_on_reconnect(mp_sds[i]->iscsi_ctx, 1);
   }
 #ifndef HAVE_CU_SUITEINFO_PSETUPFUNC
-  /* libcunit version 1 */
-  test_setup();
+  test_setup(); // libcunit version 1
 #endif
   return 0;
 }
@@ -782,8 +781,7 @@ int suite_cleanup(void) {
   int i;
 
 #ifndef HAVE_CU_SUITEINFO_PSETUPFUNC
-  /* libcunit version 1 */
-  test_teardown();
+  test_teardown(); // libcunit version 1
 #endif
   for (i = 0; i < mp_num_sds; i++) {
     if (mp_sds[i]->iscsi_url) {
@@ -807,13 +805,11 @@ static void list_all_tests(void) {
     for (sp = fp->suites; sp->pName != NULL; sp++) {
       printf("%s.%s\n", fp->name,sp->pName);
       for (tp = sp->pTests; tp->pName != NULL; tp++) {
-        printf("%s.%s.%s\n", fp->name,sp->pName,
-            tp->pName);
+        printf("%s.%s.%s\n", fp->name,sp->pName, tp->pName);
       }
     }
   }
 }
-
 
 static CU_ErrorCode add_tests(const char *testname_re) {
   char *family_re = NULL;
@@ -823,7 +819,6 @@ static CU_ErrorCode add_tests(const char *testname_re) {
   struct test_family *fp;
   libiscsi_suite_info *sp;
   CU_TestInfo *tp;
-
 
   /* if not testname(s) register all tests */
   if (!testname_re) {
@@ -867,22 +862,18 @@ static CU_ErrorCode add_tests(const char *testname_re) {
       int suite_added = 0;
       CU_pSuite pSuite = NULL;
 
-      if (fnmatch(suite_re, sp->pName, 0) != 0)
-        continue;
+      if (fnmatch(suite_re, sp->pName, 0) != 0) continue;
 
       for (tp = sp->pTests; tp->pName != NULL; tp++) {
-        if (fnmatch(test_re, tp->pName, 0) != 0) {
-          continue;
-        }
+        if (fnmatch(test_re, tp->pName, 0) != 0) continue;
+
         if (!suite_added) {
           suite_added++;
 #ifdef HAVE_CU_SUITEINFO_PSETUPFUNC
-          pSuite = CU_add_suite_with_setup_and_teardown(sp->pName,
-              sp->pInitFunc, sp->pCleanupFunc,
-              sp->pSetUpFunc, sp->pTearDownFunc);
+          pSuite = CU_add_suite_with_setup_and_teardown(sp->pName, sp->pInitFunc,
+              sp->pCleanupFunc, sp->pSetUpFunc, sp->pTearDownFunc);
 #else
-          pSuite = CU_add_suite(sp->pName,
-              sp->pInitFunc, sp->pCleanupFunc);
+          pSuite = CU_add_suite(sp->pName, sp->pInitFunc, sp->pCleanupFunc);
 #endif
         }
         CU_add_test(pSuite, tp->pName, tp->pTestFunc);
@@ -912,9 +903,8 @@ static void parse_and_add_test(const char *test) {
     while (fgets(t, sizeof(t), fh) != NULL) {
       while (1) {
         int len = strlen(t);
-        if (len == 0) {
-          break;
-        }
+        if (len == 0) break;
+
         if (!isprint(t[--len])) {
           t[len] = 0;
           continue;
@@ -928,8 +918,7 @@ static void parse_and_add_test(const char *test) {
   }
 
   if (add_tests(test) != CUE_SUCCESS) {
-    fprintf(stderr, "error: suite registration failed: %s\n",
-        CU_get_error_msg());
+    fprintf(stderr, "error: suite registration failed: %s\n", CU_get_error_msg());
     exit(1);
   }
 }
@@ -947,7 +936,8 @@ static void parse_and_add_tests(char *testname_re) {
 
 static int connect_scsi_device(struct scsi_device *sdev, const char *initiatorname) {
   if (sdev->iscsi_url) {
-    sdev->iscsi_ctx = iscsi_context_login(initiatorname, sdev->iscsi_url, &sdev->iscsi_lun);
+    sdev->iscsi_ctx = iscsi_context_login(initiatorname, sdev->iscsi_url,
+        &sdev->iscsi_lun, &sdev->iscsi_slu);
     if (sdev->iscsi_ctx == NULL) {
       return -1;
     }
@@ -1037,10 +1027,11 @@ out:
 }
 
 int main(int argc, char *argv[]) {
-  char *testname_re = NULL;
+  int res, ret, i, c, opt_idx = 0, full_size, xml_mode = 0;
+  unsigned int failures = 0;
   CU_BasicRunMode mode = CU_BRM_VERBOSE;
   CU_ErrorAction error_action = CUEA_IGNORE;
-  int res;
+  char *testname_re = NULL;
   struct scsi_readcapacity10 *rc10;
   struct scsi_task *inq_task = NULL;
   struct scsi_task *inq_lbp_task = NULL;
@@ -1048,78 +1039,73 @@ int main(int argc, char *argv[]) {
   struct scsi_task *inq_bl_task = NULL;
   struct scsi_task *rc16_task = NULL;
   struct scsi_task *rsop_task = NULL;
-  int full_size;
-  int xml_mode = 0;
   static struct option long_opts[] = {
     { "help",             no_argument,       0, '?' },
-    { "list",             no_argument,       0, 'l' },
-    { "initiator-name",   required_argument, 0, 'i' },
-    { "initiator-name-2", required_argument, 0, 'I' },
-    { "test",             required_argument, 0, 't' },
-    { "dataloss",         no_argument,       0, 'd' },
-    { "allow-sanitize",   no_argument,       0, 'S' },
-    { "ignore",           no_argument,       0, 'g' },
-    { "fail",             no_argument,       0, 'f' },
     { "abort",            no_argument,       0, 'A' },
-    { "silent",           no_argument,       0, 's' },
+    { "dataloss",         no_argument,       0, 'd' },
+    { "fail",             no_argument,       0, 'f' },
+    { "ignore",           no_argument,       0, 'g' },
+    { "help",             no_argument,       0, 'h' },  // same as '?'
+    { "initiator-name-2", required_argument, 0, 'I' },
+    { "initiator-name",   required_argument, 0, 'i' },
+    { "list",             no_argument,       0, 'l' },
     { "normal",           no_argument,       0, 'n' },
+    { "allow-sanitize",   no_argument,       0, 'S' },
+    { "silent",           no_argument,       0, 's' },
+    { "test",             required_argument, 0, 't' },
+    { "Verbose-scsi",     no_argument,       0, 'V' },
     { "verbose",          no_argument,       0, 'v' },
     { "xml",              no_argument,       0, 'x' },
-    { "Verbose-scsi",     no_argument,       0, 'V' },
     { NULL, 0, 0, 0 }
   };
-  int i, c;
-  int opt_idx = 0;
-  unsigned int failures = 0;
-  int ret;
 
-  while ((c = getopt_long(argc, argv, "?hli:I:t:sdgfAsSnvxV", long_opts, &opt_idx)) > 0) {
+  while ((c = getopt_long(argc, argv, "?AdfghI:i:lnSst:Vvx", long_opts, &opt_idx)) > 0) {
     switch (c) {
       case 'h':
       case '?':
         print_usage();
         return 0;
-      case 'l':
-        list_all_tests();
-        return 0;
-      case 'i':
-        initiatorname1 = strdup(optarg);
-        break;
-      case 'I':
-        initiatorname2 = strdup(optarg);
-        break;
-      case 't':
-        testname_re = strdup(optarg);
+      case 'A':
+        error_action = CUEA_ABORT;
         break;
       case 'd':
         data_loss++;
         break;
-      case 'g':
-        error_action = CUEA_IGNORE; /* default */
-        break;
       case 'f':
         error_action = CUEA_FAIL;
         break;
-      case 'A':
-        error_action = CUEA_ABORT;
+      case 'g':
+        error_action = CUEA_IGNORE; /* default */
         break;
-      case 's':
-        mode = CU_BRM_SILENT;
+      case 'I':
+        initiatorname2 = strdup(optarg);
+        break;
+      case 'i':
+        initiatorname1 = strdup(optarg);
+        break;
+      case 'l':
+        list_all_tests();
+        return 0;
+      case 'n':
+        mode = CU_BRM_NORMAL;
         break;
       case 'S':
         allow_sanitize = 1;
         break;
-      case 'n':
-        mode = CU_BRM_NORMAL;
+      case 's':
+        mode = CU_BRM_SILENT;
+        break;
+      case 't':
+        testname_re = strdup(optarg);
+        break;
+      case 'V':
+        loglevel = LOG_VERBOSE;
         break;
       case 'v':
         mode = CU_BRM_VERBOSE;        /* default */
         break;
       case 'x':
         xml_mode = 1;
-        break;
-      case 'V':
-        loglevel = LOG_VERBOSE;
         break;
       default:
         fprintf(stderr, "error: unknown option return: %c (option %s)\n",
@@ -1142,8 +1128,7 @@ int main(int argc, char *argv[]) {
     memset(mp_sds[mp_num_sds], '\0', sizeof(struct scsi_device));
     mp_sds[mp_num_sds]->sgio_fd = -1;
 
-    if (!strncmp(argv[optind], "iscsi://", 8) ||
-        !strncmp(argv[optind], "iser://", 7)) {
+    if (!strncmp(argv[optind], "iscsi://", 8) || !strncmp(argv[optind], "iser://", 7)) {
       mp_sds[mp_num_sds]->iscsi_url = strdup(argv[optind++]);
 #ifdef HAVE_SG_IO
     } else {
@@ -1153,11 +1138,9 @@ int main(int argc, char *argv[]) {
     mp_num_sds++;
   }
 
-  /* So that we can override iscsi_queue_pdu in tests
-   * and replace or mutate the blob that we are about to write to the
-   * wire.
-   * This allows such tests to do their mutates and then call out
-   * to the real queueing function once they have modified the data.
+  /* So that we can override iscsi_queue_pdu in tests and replace or mutate the blob
+   * that we are about to write to the wire. This allows such tests to do their mutates
+   * and then call out to the real queueing function once they have modified the data.
    */
   real_iscsi_queue_pdu = dlsym(RTLD_NEXT, "iscsi_queue_pdu");
 
@@ -1173,8 +1156,7 @@ int main(int argc, char *argv[]) {
     return 10;
   }
 
-  /* sd remains an alias for the first device */
-  sd = mp_sds[0];
+  sd = mp_sds[0]; // sd remains an alias for the first device
 
   for (i = 0; i < mp_num_sds; i++) {
     res = connect_scsi_device(mp_sds[i], initiatorname1);
@@ -1193,10 +1175,8 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  /*
-   * find the size of the LUN
-   * All devices support readcapacity10 but only some support
-   * readcapacity16
+  /* find the size of the LUN
+   * All devices support readcapacity10, but only some support readcapacity16
    */
   task = NULL;
   readcapacity10(sd, &task, 0, 0, EXPECT_STATUS_GOOD);
@@ -1386,14 +1366,12 @@ int main(int argc, char *argv[]) {
   }
 
   /* BLKSECTGET for /dev/sg* is a shitshow under linux.
-   * Even 4.2 kernels return number of bytes instead of number
-   * of sectors here. Just force it to 120k and let us get on with
-   * our lives.
+   * Even 4.2 kernels return number of bytes instead of number of sectors here.
+   * Just force it to 120k and let us get on with our lives.
    */
   if (sd->sgio_dev && !strncmp(sd->sgio_dev, "/dev/sg", 7)) {
-    printf("Looks like a /dev/sg device. Force max iosize "
-        "to 120k as BLKSECTGET is just broken and can "
-        "not be used for discovery.\n");
+    printf("Looks like a /dev/sg device. Force max iosize to 120k as "
+        "BLKSECTGET is just broken and can not be used for discovery\n");
     maxsectors = 120 * 1024 / block_size;
   }
   if (maxsectors) {
@@ -1422,7 +1400,6 @@ int main(int argc, char *argv[]) {
   /*
    * this actually runs the tests ...
    */
-
   if (xml_mode) {
     CU_list_tests_to_file();
     CU_automated_run_tests();

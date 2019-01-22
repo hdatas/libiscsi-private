@@ -1,17 +1,17 @@
 /* -*-  mode:c; tab-width:8; c-basic-offset:8; indent-tabs-mode:nil;  -*- */
-/* 
+/*
    Copyright (C) 2013 Ronnie Sahlberg <ronniesahlberg@gmail.com>
-   
+
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or
    (at your option) any later version.
-   
+
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-   
+
    You should have received a copy of the GNU General Public License
    along with this program; if not, see <http://www.gnu.org/licenses/>.
 */
@@ -34,7 +34,7 @@ static void sanitize_cb(struct iscsi_context *iscsi _U_, int status _U_,
 
 void
 test_sanitize_reset(void)
-{ 
+{
         int ret;
         struct scsi_command_descriptor *cd;
         struct scsi_task *sanitize_task;
@@ -156,7 +156,7 @@ test_sanitize_reset(void)
         sleep(1);
 
         logging(LOG_VERBOSE, "Reconnect to target");
-        sd->iscsi_ctx = iscsi_context_login(initiatorname1, sd->iscsi_url, &sd->iscsi_lun);
+        sd->iscsi_ctx = iscsi_context_login(initiatorname1, sd->iscsi_url, &sd->iscsi_lun, &sd->iscsi_slu);
         if (sd->iscsi_ctx == NULL) {
                 logging(LOG_VERBOSE, "Failed to login to target");
                 return;

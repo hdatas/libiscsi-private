@@ -130,8 +130,7 @@ iscsi_send_data_out(struct iscsi_context *iscsi, struct iscsi_pdu *cmd_pdu,
 		scsi_set_uint32(&pdu->outdata.data[4], pdu->payload_len);
 
 		if (iscsi_queue_pdu(iscsi, pdu) != 0) {
-			iscsi_set_error(iscsi, "Out-of-memory: failed to queue iscsi "
-				"scsi pdu.");
+			iscsi_set_error(iscsi, "Out-of-memory: failed to queue iscsi scsi pdu");
 			goto error;
 		}
 
@@ -151,23 +150,17 @@ error:
 	return -1;
 }
 
-static int
-iscsi_send_unsolicited_data_out(struct iscsi_context *iscsi, struct iscsi_pdu *pdu)
-{
+static int iscsi_send_unsolicited_data_out(struct iscsi_context *iscsi, struct iscsi_pdu *pdu) {
 	uint32_t len = MIN(pdu->expxferlen, iscsi->first_burst_length) - pdu->payload_len;
 
-	return iscsi_send_data_out(iscsi, pdu, 0xffffffff,
-				   pdu->payload_len, len);
+	return iscsi_send_data_out(iscsi, pdu, 0xffffffff, pdu->payload_len, len);
 }
 
 /* Using 'struct iscsi_data *d' for data-out is optional
  * and will be converted into a one element data-out iovector.
  */
-int
-iscsi_scsi_command_async(struct iscsi_context *iscsi, int lun, uint64_t slu,
-			 struct scsi_task *task, iscsi_command_cb cb,
-			 struct iscsi_data *d, void *private_data)
-{
+int iscsi_scsi_command_async(struct iscsi_context *iscsi, int lun, uint64_t slu,
+    struct scsi_task *task, iscsi_command_cb cb, struct iscsi_data *d, void *private_data) {
 	struct iscsi_pdu *pdu;
 	int flags;
 
@@ -203,14 +196,10 @@ iscsi_scsi_command_async(struct iscsi_context *iscsi, int lun, uint64_t slu,
 		scsi_task_set_iov_out(task, iov, 1);
 	}
 
-	pdu = iscsi_allocate_pdu(iscsi,
-				 ISCSI_PDU_SCSI_REQUEST,
-				 ISCSI_PDU_SCSI_RESPONSE,
-				 iscsi_itt_post_increment(iscsi),
-				 0);
+	pdu = iscsi_allocate_pdu(iscsi, ISCSI_PDU_SCSI_REQUEST,
+      ISCSI_PDU_SCSI_RESPONSE, iscsi_itt_post_increment(iscsi), 0);
 	if (pdu == NULL) {
-		iscsi_set_error(iscsi, "Out-of-memory, Failed to allocate "
-				"scsi pdu.");
+		iscsi_set_error(iscsi, "Out-of-memory, Failed to allocate scsi pdu");
 		return -1;
 	}
 
