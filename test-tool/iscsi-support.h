@@ -319,20 +319,18 @@ void logging(int level, const char *format, ...) _R_(2,3);
     CU_ASSERT_EQUAL(_r, 0);                           \
   } while (0);
 
-#define READ10(...)                                   \
-  ({                                                  \
-   int _r;                                            \
-   _r = read10(__VA_ARGS__);                          \
-   if (_r == -2) {                                    \
-   logging(LOG_NORMAL, "[SKIPPED] READ10 "            \
-       "is not implemented.");                        \
-       CU_PASS("[SKIPPED] Target does not support "   \
-           "READ10. Skipping test");                  \
-           return;                                    \
-           }                                          \
-           CU_ASSERT_EQUAL(_r, 0);                    \
-           _r;                                        \
-           })
+#define READ10(...)                                                        \
+  ({                                                                       \
+    int _r;                                                                \
+    _r = read10(__VA_ARGS__);                                              \
+    if (_r == -2) {                                                        \
+      logging(LOG_NORMAL, "[SKIPPED] READ10 is not implemented.");         \
+      CU_PASS("[SKIPPED] Target does not support READ10. Skipping test");  \
+      return;                                                              \
+    }                                                                      \
+    CU_ASSERT_EQUAL(_r, 0);                                                \
+    _r;                                                                    \
+  })
 
 #define READ12(...)                                   \
   do {                                                \
@@ -418,20 +416,18 @@ void logging(int level, const char *format, ...) _R_(2,3);
     CU_ASSERT_EQUAL(_r, 0);                           \
   } while (0);
 
-#define RECEIVE_COPY_RESULTS(...)                     \
-  ({                                                  \
-   int _r;                                            \
-   _r = receive_copy_results(__VA_ARGS__);            \
-   if (_r == -2) {                                    \
-   logging(LOG_NORMAL, "[SKIPPED] RECEIVE_COPY"       \
-       "_RESULTS is not implemented.");               \
-       CU_PASS("[SKIPPED] Target does not support "   \
-           "RECEIVE_COPY_RESULTS. Skipping test");    \
-           return;                                    \
-           }                                          \
-           CU_ASSERT_EQUAL(_r, 0);                    \
-           _r;                                        \
-           })
+#define RECEIVE_COPY_RESULTS(...)                                                        \
+  ({                                                                                     \
+    int _r;                                                                              \
+    _r = receive_copy_results(__VA_ARGS__);                                              \
+    if (_r == -2) {                                                                      \
+      logging(LOG_NORMAL, "[SKIPPED] RECEIVE_COPY _RESULTS is not implemented.");        \
+      CU_PASS("[SKIPPED] Target does not support RECEIVE_COPY_RESULTS. Skipping test");  \
+      return;                                                                            \
+    }                                                                                    \
+    CU_ASSERT_EQUAL(_r, 0);                                                              \
+    _r;                                                                                  \
+  })
 
 #define RELEASE6(...)                                 \
   do {                                                \
@@ -504,102 +500,90 @@ void logging(int level, const char *format, ...) _R_(2,3);
     CU_ASSERT_EQUAL(_r, 0);                           \
   } while (0);
 
-#define SYNCHRONIZECACHE10(...)                       \
-  do {                                                \
-    int _r;                                           \
-    _r = synchronizecache10(__VA_ARGS__);             \
-    if (_r == -2) {                                   \
-      logging(LOG_NORMAL, "[SKIPPED] SYNCHRONIZECACHE10 "  \
-          "is not implemented.");                     \
-      CU_PASS("[SKIPPED] Target does not support "    \
-          "SYNCHRONIZECACHE10. Skipping test");       \
-      return;                                         \
-    }                                                 \
-    CU_ASSERT_EQUAL(_r, 0);                           \
+#define SYNCHRONIZECACHE10(...)                                                \
+  do {                                                                         \
+    int _r;                                                                    \
+    _r = synchronizecache10(__VA_ARGS__);                                      \
+    if (_r == -2) {                                                            \
+      logging(LOG_NORMAL, "[SKIPPED] SYNCHRONIZECACHE10 is not implemented."); \
+      CU_PASS("[SKIPPED] Target does not support "                             \
+          "SYNCHRONIZECACHE10. Skipping test");                                \
+      return;                                                                  \
+    }                                                                          \
+    CU_ASSERT_EQUAL(_r, 0);                                                    \
   } while (0);
 
-#define SYNCHRONIZECACHE16(...)                       \
-  do {                                                \
-    int _r;                                           \
-    _r = synchronizecache16(__VA_ARGS__);             \
-    if (_r == -2) {                                   \
-      logging(LOG_NORMAL, "[SKIPPED] SYNCHRONIZECACHE16 "  \
-          "is not implemented.");                     \
-      CU_PASS("[SKIPPED] Target does not support "    \
-          "SYNCHRONIZECACHE16. Skipping test");       \
-      return;                                         \
-    }                                                 \
-    CU_ASSERT_EQUAL(_r, 0);                           \
+#define SYNCHRONIZECACHE16(...)                                                \
+  do {                                                                         \
+    int _r;                                                                    \
+    _r = synchronizecache16(__VA_ARGS__);                                      \
+    if (_r == -2) {                                                            \
+      logging(LOG_NORMAL, "[SKIPPED] SYNCHRONIZECACHE16 is not implemented."); \
+      CU_PASS("[SKIPPED] Target does not support "                             \
+          "SYNCHRONIZECACHE16. Skipping test");                                \
+      return;                                                                  \
+    }                                                                          \
+    CU_ASSERT_EQUAL(_r, 0);                                                    \
   } while (0);
 
-#define TESTUNITREADY(...)                            \
-  do {                                                \
-    int _r;                                           \
-    _r = testunitready(__VA_ARGS__);                  \
-    if (_r == -2) {                                   \
-      logging(LOG_NORMAL, "[SKIPPED] TESTUNITREADY "  \
-          "is not implemented.");                     \
-      CU_PASS("[SKIPPED] Target does not support "    \
-          "TESTUNITREADY. Skipping test");            \
-      return;                                         \
-    }                                                 \
-    CU_ASSERT_EQUAL(_r, 0);                           \
+#define TESTUNITREADY(...)                                                        \
+  do {                                                                            \
+    int _r;                                                                       \
+    _r = testunitready(__VA_ARGS__);                                              \
+    if (_r == -2) {                                                               \
+      logging(LOG_NORMAL, "[SKIPPED] TESTUNITREADY is not implemented.");         \
+      CU_PASS("[SKIPPED] Target does not support TESTUNITREADY. Skipping test");  \
+      return;                                                                     \
+    }                                                                             \
+    CU_ASSERT_EQUAL(_r, 0);                                                       \
   } while (0);
 
-#define UNMAP(...)                                    \
-  do {                                                \
-    int _r;                                           \
-    _r = unmap(__VA_ARGS__);                          \
-    if (_r == -2) {                                   \
-      logging(LOG_NORMAL, "[SKIPPED] UNMAP "          \
-          "is not implemented.");                     \
-      CU_PASS("[SKIPPED] Target does not support "    \
-          "UNMAP. Skipping test");                    \
-      return;                                         \
-    }                                                 \
-    CU_ASSERT_EQUAL(_r, 0);                           \
+#define UNMAP(...)                                                          \
+  do {                                                                      \
+    int _r;                                                                 \
+    _r = unmap(__VA_ARGS__);                                                \
+    if (_r == -2) {                                                         \
+      logging(LOG_NORMAL, "[SKIPPED] UNMAP is not implemented.");           \
+      CU_PASS("[SKIPPED] Target does not support UNMAP. Skipping test");    \
+      return;                                                               \
+    }                                                                       \
+    CU_ASSERT_EQUAL(_r, 0);                                                 \
   } while (0);
 
-#define VERIFY10(...)                                 \
-  do {                                                \
-    int _r;                                           \
-    _r = verify10(__VA_ARGS__);                       \
-    if (_r == -2) {                                   \
-      logging(LOG_NORMAL, "[SKIPPED] VERIFY10 "       \
-          "is not implemented.");                     \
-      CU_PASS("[SKIPPED] Target does not support "    \
-          "VERIFY10. Skipping test");                 \
-      return;                                         \
-    }                                                 \
-    CU_ASSERT_EQUAL(_r, 0);                           \
+#define VERIFY10(...)                                                       \
+  do {                                                                      \
+    int _r;                                                                 \
+    _r = verify10(__VA_ARGS__);                                             \
+    if (_r == -2) {                                                         \
+      logging(LOG_NORMAL, "[SKIPPED] VERIFY10 is not implemented.");        \
+      CU_PASS("[SKIPPED] Target does not support VERIFY10. Skipping test"); \
+      return;                                                               \
+    }                                                                       \
+    CU_ASSERT_EQUAL(_r, 0);                                                 \
   } while (0);
 
-#define VERIFY12(...)                                 \
-  do {                                                \
-    int _r;                                           \
-    _r = verify12(__VA_ARGS__);                       \
-    if (_r == -2) {                                   \
-      logging(LOG_NORMAL, "[SKIPPED] VERIFY12 "       \
-          "is not implemented.");                     \
-      CU_PASS("[SKIPPED] Target does not support "    \
-          "VERIFY12. Skipping test");                 \
-      return;                                         \
-    }                                                 \
-    CU_ASSERT_EQUAL(_r, 0);                           \
+#define VERIFY12(...)                                                       \
+  do {                                                                      \
+    int _r;                                                                 \
+    _r = verify12(__VA_ARGS__);                                             \
+    if (_r == -2) {                                                         \
+      logging(LOG_NORMAL, "[SKIPPED] VERIFY12 is not implemented.");        \
+      CU_PASS("[SKIPPED] Target does not support VERIFY12. Skipping test"); \
+      return;                                                               \
+    }                                                                       \
+    CU_ASSERT_EQUAL(_r, 0);                                                 \
   } while (0);
 
-#define VERIFY16(...)                                 \
-  do {                                                \
-    int _r;                                           \
-    _r = verify16(__VA_ARGS__);                       \
-    if (_r == -2) {                                   \
-      logging(LOG_NORMAL, "[SKIPPED] VERIFY16 "       \
-          "is not implemented.");                     \
-      CU_PASS("[SKIPPED] Target does not support "    \
-          "VERIFY16. Skipping test");                 \
-      return;                                         \
-    }                                                 \
-    CU_ASSERT_EQUAL(_r, 0);                           \
+#define VERIFY16(...)                                                       \
+  do {                                                                      \
+    int _r;                                                                 \
+    _r = verify16(__VA_ARGS__);                                             \
+    if (_r == -2) {                                                         \
+      logging(LOG_NORMAL, "[SKIPPED] VERIFY16 is not implemented.");        \
+      CU_PASS("[SKIPPED] Target does not support VERIFY16. Skipping test"); \
+      return;                                                               \
+    }                                                                       \
+    CU_ASSERT_EQUAL(_r, 0);                                                 \
   } while (0);
 
 #define WRITE10(...)                                                        \
@@ -615,18 +599,16 @@ void logging(int level, const char *format, ...) _R_(2,3);
      _r;                                                                    \
   })
 
-#define WRITE12(...)                                  \
-  do {                                                \
-    int _r;                                           \
-    _r = write12(__VA_ARGS__);                        \
-    if (_r == -2) {                                   \
-      logging(LOG_NORMAL, "[SKIPPED] WRITE12 "        \
-          "is not implemented.");                     \
-      CU_PASS("[SKIPPED] Target does not support "    \
-          "WRITE12. Skipping test");                  \
-      return;                                         \
-    }                                                 \
-    CU_ASSERT_EQUAL(_r, 0);                           \
+#define WRITE12(...)                                                        \
+  do {                                                                      \
+    int _r;                                                                 \
+    _r = write12(__VA_ARGS__);                                              \
+    if (_r == -2) {                                                         \
+      logging(LOG_NORMAL, "[SKIPPED] WRITE12 is not implemented.");         \
+      CU_PASS("[SKIPPED] Target does not support WRITE12. Skipping test");  \
+      return;                                                               \
+    }                                                                       \
+    CU_ASSERT_EQUAL(_r, 0);                                                 \
   } while (0);
 
 #define WRITE16(...)                                  \
