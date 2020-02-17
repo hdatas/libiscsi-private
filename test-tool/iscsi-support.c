@@ -2786,6 +2786,14 @@ int get_desc_len(enum ec_descr_type_code desc_type) {
   return desc_len;
 }
 
+const char* TargetDesignatorToString(struct scsi_inquiry_device_designator* desig) {
+  static char msg[1000];
+  sprintf(msg, "target designator: code_set=%d, desg_type=%d, asso=%d, length=%d, designator=%s",
+         desig->code_set, desig->designator_type & 0xF, desig->association & 3,
+         desig->designator_length, desig->designator);
+  return msg;
+}
+
 void populate_ident_tgt_desc(unsigned char *buf, struct scsi_device *dev) {
   int ret;
   struct scsi_task *inq_di_task = NULL;
@@ -2806,6 +2814,7 @@ void populate_ident_tgt_desc(unsigned char *buf, struct scsi_device *dev) {
   }
 
   for (desig = inq_di->designators; desig; desig = desig->next) {
+    printf("check target desg: %s\n", TargetDesignatorToString(desig));
     switch (desig->designator_type) {
       case SCSI_DESIGNATOR_TYPE_VENDOR_SPECIFIC:
       case SCSI_DESIGNATOR_TYPE_T10_VENDORT_ID:
@@ -2829,7 +2838,7 @@ void populate_ident_tgt_desc(unsigned char *buf, struct scsi_device *dev) {
   buf[1] = (tgt_desig->designator_type & 0xF) | ((tgt_desig->association & 3) << 4);
   buf[3] = tgt_desig->designator_length;
   memcpy(buf + 4, tgt_desig->designator, tgt_desig->designator_length);
-
+  printf("will use target desg: %s\n", TargetDesignatorToString(tgt_desig));
 finished:
   scsi_free_scsi_task(inq_di_task);
 }

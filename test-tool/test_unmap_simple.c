@@ -50,7 +50,10 @@ test_unmap_simple(void)
                 block_size, 0, 0, 0, 0, 0, scratch,
                 EXPECT_STATUS_GOOD);
 
-        for (i = 1; i <= 256; i++) {
+        logging(LOG_VERBOSE, "inquiry->max_unmap_bdc=%d, max_nr_bdc=%d, lbprz=%d",
+                inq_bl->max_unmap_bdc, max_nr_bdc, (rc16 ? rc16->lbprz : 0));
+
+          for (i = 0; i < 256; i += 8) {
                 logging(LOG_VERBOSE, "UNMAP blocks 0-%d", i);
                 list[0].lba = 0;
                 list[0].num = i;
@@ -69,6 +72,7 @@ test_unmap_simple(void)
                 }
         }
 
+        logging(LOG_VERBOSE, "device max allowed unmap_bdc = %d\n", inq_bl->max_unmap_bdc);
         if (inq_bl->max_unmap_bdc > 0 && max_nr_bdc > (int)inq_bl->max_unmap_bdc) {
           max_nr_bdc = (int)inq_bl->max_unmap_bdc;
         }
@@ -78,7 +82,7 @@ test_unmap_simple(void)
         }
 
         logging(LOG_VERBOSE, "Test UNMAP of 1-%d blocks at the start of the "
-                "LUN with one descriptor per block", max_nr_bdc);
+                "LUN with one descriptor per page", max_nr_bdc);
 
         logging(LOG_VERBOSE, "Write 'a' to the first %d LBAs", max_nr_bdc);
         memset(scratch, 'a', max_nr_bdc * block_size);
@@ -86,21 +90,23 @@ test_unmap_simple(void)
                 block_size, 0, 0, 0, 0, 0, scratch,
                 EXPECT_STATUS_GOOD);
 
-        for (i = 0; i < max_nr_bdc; i++) {
-                list[i].lba = i;
-                list[i].num = 1;
-                UNMAP(sd, 0, list, i + 1,
-                      EXPECT_STATUS_GOOD);
+        int num_descs = 0;
+        // "unmap" offset should be 4K aligned, size be 4K aligned.
+        for (i = 0; i < 256 && num_descs < max_nr_bdc; i += 8, num_descs++) {
+        // for (i = 0; i < max_nr_bdc; i++) {
+                list[num_descs].lba = i;
+                list[num_descs].num = 8;
+                UNMAP(sd, 0, list, num_descs + 1, EXPECT_STATUS_GOOD);
 
-                logging(LOG_VERBOSE, "Read blocks 0-%d", i);
-                READ10(sd, NULL, 0, (i + 1) * block_size,
+                logging(LOG_VERBOSE, "Read blocks 0-%d", (num_descs + 1) * 8);
+                READ10(sd, NULL, 0, (num_descs + 1) * 8 * block_size,
                        block_size, 0, 0, 0, 0, 0, scratch,
                        EXPECT_STATUS_GOOD);
 
                 if (rc16 && rc16->lbprz) {
                         logging(LOG_VERBOSE, "LBPRZ==1 All UNMAPPED blocks "
                                 "should read back as 0");
-                        ALL_ZERO(scratch, i * block_size);
+                        ALL_ZERO(scratch, (num_descs + 1) * 8 * block_size);
                 }
         }
 }

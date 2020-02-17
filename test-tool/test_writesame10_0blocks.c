@@ -42,8 +42,8 @@ test_writesame10_0blocks(void)
 
         logging(LOG_VERBOSE, LOG_BLANK_LINE);
 
-        logging(LOG_VERBOSE, "Test WRITESAME10 0-blocks at LBA==0 (WSNZ=%d)",
-                inq_bl->wsnz);
+        logging(LOG_VERBOSE, "Test WRITESAME10 0-blocks at LBA==0 (WSNZ=%d), num_blks=%ld, max_ws_len=%ld",
+                inq_bl->wsnz, num_blocks, inq_bl->max_ws_len);
         memset(scratch, 0, block_size);
 
         if (inq_bl->wsnz) {

@@ -107,6 +107,7 @@ test_writesame10_unmap(void)
         WRITESAME10(sd, 0, block_size, 1, 1, 0, 0, 0, scratch,
                     EXPECT_INVALID_FIELD_IN_CDB);
 
+        logging(LOG_VERBOSE, "inq_lbp->anc_sup=%d", inq_lbp->anc_sup);
         if (inq_lbp->anc_sup) {
                 logging(LOG_VERBOSE, "Test WRITESAME10 ANCHOR==1 + UNMAP==0");
                 memset(scratch, 0, block_size);
